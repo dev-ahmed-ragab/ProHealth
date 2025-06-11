@@ -1,0 +1,25 @@
+[build]
+  base = "server"
+  command = "npm install && npm run build"
+  functions = "functions"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NODE_ENV = "production"
+
+[functions]
+  directory = "functions"
+  node_bundler = "esbuild"
+  included_files = ["src/**/*"]
+
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
+
+[dev]
+  command = "npm run dev"
+  port = 8888
+  targetPort = 3000
+  framework = "#static"
