@@ -85,7 +85,7 @@ function DoctorAppointments() {
   return (
     <Box
       sx={{
-        maxWidth: '1400px',
+        maxWidth: '900px',
         mx: 'auto',
         width: '100%',
         px: { xs: 2, sm: 3, md: 4 },

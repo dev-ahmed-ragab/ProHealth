@@ -21,9 +21,12 @@
     }
   ],
   "env": {
-    "MONGODB_URI": "mongodb+srv://web:web@cluster0.3kor3bn.mongodb.net/",
+    "MONGODB_URI": "mongodb+srv://admin:admin@cluster0.xjgqihz.mongodb.net/meddb?retryWrites=true&w=majority",
     "PORT": "5000",
-    "JWT_SECRET": "your_jwt_secret_key_here",
-    "JWT_EXPIRE": "24h"
+    "JWT_SECRET": "your_jwt_secret_key",
+    "JWT_EXPIRE": "24h",
+    "EMAIL_USER": "ahmedfortest9@gmail.com",
+    "EMAIL_PASS": "ouot hvbl okfz cjzu",
+    "CLIENT_URL": "https://pro-health-wine.vercel.app/"
   }
 }

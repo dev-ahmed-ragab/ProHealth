@@ -165,7 +165,7 @@ const BookAppointmentPage = () => {
                 component="img"
                 height="auto"
                 image={
-                  `http://localhost:5000${doctor?.profilePicture}` ||
+                  `https://pro-health-backend.vercel.app${doctor?.profilePicture}` ||
                   '/default-doctor.jpg'
                 }
                 alt={doctor?.name || 'Doctor'}

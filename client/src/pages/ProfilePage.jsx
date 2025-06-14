@@ -27,7 +27,7 @@ import axios from 'axios';
 
 const ProfilePage = () => {
   const { id } = useParams();
-  const { user: authUser, logout, token } = useAuth();
+  const { user: logout, token } = useAuth();
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [profilePicture, setProfilePicture] = useState('');
@@ -288,7 +288,7 @@ const ProfilePage = () => {
             <Avatar
               src={
                 profilePicture
-                  ? `http://localhost:5000${profilePicture}`
+                  ? `https://pro-health-backend.vercel.app/${profilePicture}`
                   : undefined
               }
               sx={{ width: 100, height: 100, mb: 2 }}

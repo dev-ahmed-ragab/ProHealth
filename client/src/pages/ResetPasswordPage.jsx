@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { TextField, Button, Box, Typography, Link } from '@mui/material';
+import { TextField, Button, Box, Typography } from '@mui/material';
 import { Container } from '@mui/system';
 
 function ResetPasswordPage() {

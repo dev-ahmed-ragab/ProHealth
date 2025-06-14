@@ -175,13 +175,13 @@ function AppointmentsList() {
   return (
     <Box
       sx={{
-        width: '100vw',
+        width: '100vw' - '240px',
         minHeight: '100vh',
         background: 'linear-gradient(145deg, #ffffff, #f0f4f8)',
         py: { xs: 6, md: 8 },
       }}
     >
-      <Container maxWidth="lg" sx={{ maxWidth: '1400px', mx: 'auto' }}>
+      <Container maxWidth="lg" sx={{ maxWidth: '900px', mx: 'auto' }}>
         <Box
           sx={{
             p: { xs: 3, md: 4 },

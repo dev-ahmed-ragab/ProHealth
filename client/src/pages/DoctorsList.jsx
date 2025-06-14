@@ -19,9 +19,12 @@ const DoctorsList = () => {
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/users/doctors', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await axios.get(
+          'https://pro-health-backend.vercel.app/api/users/doctors',
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         setDoctors(res.data);
       } catch (err) {
         console.error('Error fetching doctors:', err);

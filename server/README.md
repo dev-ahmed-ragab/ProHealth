@@ -18,17 +18,20 @@ A RESTful API for a blog application built with Node.js, Express, and MongoDB.
 ## Installation
 
 1. Clone the repository:
+
 ```bash
 git clone <repository-url>
 cd blog-api
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Create a `.env` file in the root directory with the following variables:
+
 ```
 MONGODB_URI=mongodb://localhost:27017/blog
 PORT=5000
@@ -37,6 +40,7 @@ JWT_EXPIRE=24h
 ```
 
 4. Start the server:
+
 ```bash
 # Development mode
 npm run dev
@@ -50,6 +54,7 @@ npm start
 ### User Routes
 
 - `POST /api/users/register` - Register a new user
+
   ```json
   {
     "username": "johndoe",
@@ -59,6 +64,7 @@ npm start
   ```
 
 - `POST /api/users/login` - Login user
+
   ```json
   {
     "email": "john@example.com",
@@ -73,6 +79,7 @@ npm start
 - `GET /api/posts` - Get all posts
 - `GET /api/posts/:id` - Get single post by ID
 - `POST /api/posts` - Create a new post (Protected route)
+
   ```json
   {
     "title": "My First Post",
@@ -81,6 +88,7 @@ npm start
   ```
 
 - `PUT /api/posts/:id` - Update post (Protected route)
+
   ```json
   {
     "title": "Updated Title",
@@ -93,6 +101,7 @@ npm start
 ## Authentication
 
 Protected routes require a valid JWT token in the Authorization header:
+
 ```
 Authorization: Bearer <your-token>
 ```
@@ -100,6 +109,7 @@ Authorization: Bearer <your-token>
 ## Error Handling
 
 The API includes comprehensive error handling for:
+
 - Validation errors
 - Authentication errors
 - Authorization errors
@@ -110,7 +120,8 @@ The API includes comprehensive error handling for:
 
 1. Import the provided Postman collection (if available)
 2. Set up environment variables in Postman:
-   - `BASE_URL`: http://localhost:5000
+
+   - `BASE_URL`: https://pro-health-backend.vercel.app/
    - `TOKEN`: (will be automatically set after login)
 
 3. Test the endpoints in the following order:
@@ -124,4 +135,4 @@ The API includes comprehensive error handling for:
 
 ## License
 
-MIT 
+MIT

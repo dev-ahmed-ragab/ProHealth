@@ -48,7 +48,7 @@ const DoctorAvailableSlots = () => {
       }
 
       const res = await axios.get(
-        `http://localhost:5000/api/appointments/available/${doctorId}/${date}`,
+        `https://pro-health-backend.vercel.app/api/appointments/available/${doctorId}/${date}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

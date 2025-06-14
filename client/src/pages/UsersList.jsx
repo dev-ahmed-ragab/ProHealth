@@ -38,9 +38,12 @@ const UsersList = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/users', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await axios.get(
+          'https://pro-health-backend.vercel.app/api/users',
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         setUsers(res.data);
       } catch (err) {
         console.error('Error fetching users:', err);
@@ -72,7 +75,7 @@ const UsersList = () => {
   const handleUpdate = async () => {
     try {
       await axios.put(
-        `http://localhost:5000/api/users/${selectedUser._id}`,
+        `https://pro-health-backend.vercel.app/api/users/${selectedUser._id}`,
         formData,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -92,9 +95,12 @@ const UsersList = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
-        await axios.delete(`http://localhost:5000/api/users/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await axios.delete(
+          `https://pro-health-backend.vercel.app/api/users/${id}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         setUsers(users.filter((u) => u._id !== id));
       } catch (err) {
         console.error('Error deleting user:', err);

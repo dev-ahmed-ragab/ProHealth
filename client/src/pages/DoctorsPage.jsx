@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import {
   Box,
@@ -15,7 +15,6 @@ import {
 const DoctorsPage = () => {
   const [doctors, setDoctors] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchDoctors = async () => {
@@ -171,7 +170,7 @@ const DoctorsPage = () => {
                 <CardMedia
                   component="img"
                   image={
-                    `http://localhost:5000${doctor.profilePicture}` ||
+                    `https://pro-health-backend.vercel.app/${doctor.profilePicture}` ||
                     '/default-doctor.jpg'
                   }
                   alt={doctor.name}

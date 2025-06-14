@@ -15,19 +15,20 @@ import {
 } from '@mui/material';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
 
 const DoctorViewAppointments = () => {
-  const { user } = useAuth();
   const [appointments, setAppointments] = useState([]);
   const token = localStorage.getItem('token');
 
   useEffect(() => {
     const fetchAppointments = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/appointments', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await axios.get(
+          'https://pro-health-backend.vercel.app/api/appointments',
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         setAppointments(res.data.data);
       } catch (err) {
         console.error('Error fetching appointments:', err);
@@ -39,7 +40,7 @@ const DoctorViewAppointments = () => {
   const handleStatusChange = async (id, status) => {
     try {
       await axios.put(
-        `http://localhost:5000/api/appointments/${id}/status`,
+        `https://pro-health-backend.vercel.app/api/appointments/${id}/status`,
         { status },
         { headers: { Authorization: `Bearer ${token}` } }
       );

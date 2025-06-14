@@ -52,7 +52,7 @@ function AdminDashboard() {
       <Drawer
         variant="permanent"
         sx={{
-          width: { xs: 200, sm: 240 },
+          width: { xs: 150, sm: 240 },
           flexShrink: 0,
           [`& .MuiDrawer-paper`]: {
             width: { xs: 200, sm: 240 },
@@ -148,7 +148,7 @@ function AdminDashboard() {
           backgroundColor: '#fff',
         }}
       >
-        <Container maxWidth="lg" sx={{ maxWidth: '1400px', mx: 'auto' }}>
+        <Container maxWidth="lg" sx={{ maxWidth: '900px', mx: 'auto' }}>
           <Typography
             variant="h3"
             sx={{

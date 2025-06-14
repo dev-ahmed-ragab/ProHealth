@@ -31,7 +31,7 @@ const DoctorAppointmentDetails = () => {
     const fetchAppointment = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:5000/api/appointments/${id}`,
+          `https://pro-health-backend.vercel.app/api/appointments/${id}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -58,7 +58,7 @@ const DoctorAppointmentDetails = () => {
     if (date) {
       try {
         const res = await axios.get(
-          `http://localhost:5000/api/appointments/available-slots/${user.user._id}/${date}`,
+          `https://pro-health-backend.vercel.app/api/appointments/available-slots/${user.user._id}/${date}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setAvailableSlots(res.data.data);
@@ -75,7 +75,7 @@ const DoctorAppointmentDetails = () => {
   const handleUpdate = async () => {
     try {
       const res = await axios.put(
-        `http://localhost:5000/api/appointments/${id}`,
+        `https://pro-health-backend.vercel.app/api/appointments/${id}`,
         {
           date: formData.date,
           startTime: formData.startTime,
@@ -97,7 +97,7 @@ const DoctorAppointmentDetails = () => {
   const handleStatusChange = async () => {
     try {
       const res = await axios.put(
-        `http://localhost:5000/api/appointments/${id}/status`,
+        `https://pro-health-backend.vercel.app/api/appointments/${id}/status`,
         { status: formData.status },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -115,7 +115,7 @@ const DoctorAppointmentDetails = () => {
   const handleCancel = async () => {
     try {
       const res = await axios.put(
-        `http://localhost:5000/api/appointments/${id}/cancel`,
+        `https://pro-health-backend.vercel.app/api/appointments/${id}/cancel`,
         { cancellationReason: formData.cancellationReason },
         { headers: { Authorization: `Bearer ${token}` } }
       );
