@@ -32,6 +32,7 @@ const userSchema = new mongoose.Schema(
     },
     phone: { type: String, trim: true },
     profilePicture: { type: String, trim: true, default: null },
+    hasProfilePicture: { type: Boolean, default: false }, // حقل جديد
   },
   { timestamps: true }
 );

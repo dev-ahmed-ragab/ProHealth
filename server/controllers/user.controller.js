@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { cloudinary } from '../index.js';
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -99,10 +100,7 @@ export const deleteUser = async (req, res) => {
     }
 
     if (user.profilePicture) {
-      const filePath = path.join(__dirname, '..', user.profilePicture);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
+      // لا حاجة للحذف المحلي، لأن الصورة في Cloudinary
     }
 
     res.json({ msg: 'User deleted successfully' });
@@ -147,7 +145,7 @@ export const uploadProfilePicture = async (req, res) => {
       return res.status(404).json({ msg: 'User not found' });
     }
 
-    if (req.user._id !== req.params.id) {
+    if (req.user._id.toString() !== req.params.id) {
       return res.status(403).json({ msg: 'Unauthorized access' });
     }
 
@@ -155,22 +153,65 @@ export const uploadProfilePicture = async (req, res) => {
       return res.status(400).json({ msg: 'No file uploaded' });
     }
 
-    if (user.profilePicture) {
-      const oldFilePath = path.join(__dirname, '..', user.profilePicture);
-      if (fs.existsSync(oldFilePath)) {
-        fs.unlinkSync(oldFilePath);
-      }
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: 'ProHealth',
+    });
+
+    try {
+      await fs.unlink(req.file.path);
+    } catch (unlinkErr) {
+      console.warn('Failed to delete temporary file:', unlinkErr.message);
     }
 
-    user.profilePicture = `/uploads/${req.file.filename}`;
+    user.profilePicture = result.secure_url;
+    user.hasProfilePicture = true;
     await user.save();
 
     res.json({
       msg: 'Profile picture uploaded successfully',
       profilePicture: user.profilePicture,
+      hasProfilePicture: user.hasProfilePicture,
     });
   } catch (err) {
-    res.status(500).json({ msg: 'Server error' });
+    console.error('Upload error:', err);
+    res.status(500).json({ msg: 'Server error during upload', error: err.message });
+  }
+};
+// Edit profile picture
+export const editProfilePicture = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    if (req.user._id !== req.params.id) {
+      return res.status(403).json({ msg: 'Unauthorized access' });
+    }
+
+    if (!user.profilePicture) {
+      return res.status(400).json({ msg: 'No profile picture to edit' });
+    }
+
+    const publicId = user.profilePicture.split('/').pop().split('.')[0]; // استخراج publicId
+    const { transformation } = req.body; // مثال: { width: 200, height: 200, crop: 'fill' }
+
+    const result = await cloudinary.uploader.explicit(publicId, {
+      type: 'upload',
+      folder: 'ProHealth',
+      transformation: transformation || {},
+    });
+
+    user.profilePicture = result.secure_url;
+    await user.save();
+
+    res.json({
+      msg: 'Profile picture edited successfully',
+      profilePicture: user.profilePicture,
+    });
+  } catch (err) {
+    console.error('Error during edit:', err.message);
+    res.status(500).json({ msg: 'Server error', error: err.message });
   }
 };
 
