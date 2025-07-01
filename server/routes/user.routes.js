@@ -10,7 +10,7 @@ import {
   getDoctorForBooking,
   updatePassword,
   uploadProfilePicture,
-  editProfilePicture, // دالة جديدة
+  editProfilePicture,
 } from '../controllers/user.controller.js';
 import {
   authMiddleware,
@@ -89,7 +89,7 @@ router.post(
 router.post(
   '/:id/edit-profile-picture',
   authMiddleware,
-  editProfilePicture // مسار جديد
+  editProfilePicture
 );
 
 // Public routes for doctors

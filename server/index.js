@@ -23,10 +23,10 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// تهيئة CORS
+// Configure CORS
 app.use(cors({
-  origin: ['https://pro-health-wine.vercel.app', 'http://localhost:3000'], // أضف المنشأ المحلي
-  credentials: true, // إذا كنت تستخدم ملفات تعريف الارتباط أو التوكن
+  origin: ['https://pro-health-wine.vercel.app', 'http://localhost:3000'],
+  credentials: true,
 }));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -54,6 +54,6 @@ mongoose
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
-// تصدير الـ app كافتراضي لـ Vercel و ESM
+// Export app for Vercel and ESM
 export default app;
 export { cloudinary };

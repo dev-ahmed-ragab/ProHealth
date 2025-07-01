@@ -7,22 +7,17 @@ const router = express.Router();
 
 router.post('/upload', upload.single('image'), async (req, res) => {
   try {
-    console.log('Request body:', req.body); // تتبع البيانات المرسلة
-    console.log('Request file:', req.file); // تتبع الملف المرفوع
-
     if (!req.file) {
       throw new Error('لم يتم رفع أي صورة. تحقق من اسم الحقل (يجب أن يكون "image")');
     }
 
     const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: 'ProHealth', // اسم المجلد المحدد
+      folder: 'ProHealth',
+      resource_type: 'image',
     });
 
-    console.log('Upload to Cloudinary successful:', result); // تأكيد نجاح الرفع
-
-    // حذف الملف المؤقت
+    // Delete temporary file
     await fs.unlink(req.file.path);
-    console.log('Temporary file deleted:', req.file.path);
 
     res.status(200).json({
       message: 'تم رفع الصورة بنجاح',
@@ -30,7 +25,7 @@ router.post('/upload', upload.single('image'), async (req, res) => {
       publicId: result.public_id,
     });
   } catch (error) {
-    console.error('Error during upload:', error.message); // طباعة رسالة الخطأ
+    console.error('Error during upload:', error.message);
     res.status(500).json({ message: 'حدث خطأ أثناء رفع الصورة', error: error.message });
   }
 });

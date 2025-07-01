@@ -1,8 +1,8 @@
 import User from '../models/User.js';
-import fs from 'fs';
+import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { cloudinary } from '../index.js';
+import cloudinary from '../config/cloudinaryConfig.js';
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -19,7 +19,7 @@ export const getUserById = async (req, res) => {
       return res.status(404).json({ msg: 'User not found' });
     }
 
-    if (req.user.role !== 'admin' && req.user._id !== req.params.id) {
+    if (req.user.role !== 'admin' && req.user._id.toString() !== req.params.id) {
       return res.status(403).json({ msg: 'Unauthorized access' });
     }
 
@@ -66,7 +66,7 @@ export const updateUser = async (req, res) => {
       return res.status(404).json({ msg: 'User not found' });
     }
 
-    if (req.user.role !== 'admin' && req.user._id !== req.params.id) {
+    if (req.user.role !== 'admin' && req.user._id.toString() !== req.params.id) {
       return res.status(403).json({ msg: 'Unauthorized access' });
     }
 
@@ -94,15 +94,18 @@ export const deleteUser = async (req, res) => {
       return res.status(403).json({ msg: 'Admin access required' });
     }
 
-    const user = await User.findByIdAndDelete(req.params.id);
+    const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({ msg: 'User not found' });
     }
 
+    // Delete profile picture from Cloudinary if it exists
     if (user.profilePicture) {
-      // لا حاجة للحذف المحلي، لأن الصورة في Cloudinary
+      const publicId = user.profilePicture.split('/').pop().split('.')[0];
+      await cloudinary.uploader.destroy(`ProHealth/${publicId}`);
     }
 
+    await User.findByIdAndDelete(req.params.id);
     res.json({ msg: 'User deleted successfully' });
   } catch (err) {
     res.status(500).json({ msg: 'Server error' });
@@ -119,7 +122,7 @@ export const updatePassword = async (req, res) => {
       return res.status(404).json({ msg: 'User not found' });
     }
 
-    if (req.user._id !== req.params.id) {
+    if (req.user._id.toString() !== req.params.id) {
       return res.status(403).json({ msg: 'Unauthorized access' });
     }
 
@@ -153,30 +156,47 @@ export const uploadProfilePicture = async (req, res) => {
       return res.status(400).json({ msg: 'No file uploaded' });
     }
 
+    // Upload image to Cloudinary
     const result = await cloudinary.uploader.upload(req.file.path, {
       folder: 'ProHealth',
+      resource_type: 'image',
     });
 
+    // Delete previous profile picture from Cloudinary if it exists
+    if (user.profilePicture) {
+      const publicId = user.profilePicture.split('/').pop().split('.')[0];
+      await cloudinary.uploader.destroy(`ProHealth/${publicId}`);
+    }
+
+    // Delete temporary file
     try {
       await fs.unlink(req.file.path);
     } catch (unlinkErr) {
       console.warn('Failed to delete temporary file:', unlinkErr.message);
     }
 
+    // Update user with new Cloudinary URL
     user.profilePicture = result.secure_url;
     user.hasProfilePicture = true;
     await user.save();
 
+    // Verify the update
+    const updatedUser = await User.findById(req.params.id);
+    if (!updatedUser.profilePicture.startsWith('https://res.cloudinary.com/')) {
+      return res.status(500).json({ msg: 'Failed to save Cloudinary URL' });
+    }
+
     res.json({
       msg: 'Profile picture uploaded successfully',
-      profilePicture: user.profilePicture,
-      hasProfilePicture: user.hasProfilePicture,
+      profilePicture: updatedUser.profilePicture,
+      hasProfilePicture: updatedUser.hasProfilePicture,
     });
   } catch (err) {
     console.error('Upload error:', err);
     res.status(500).json({ msg: 'Server error during upload', error: err.message });
   }
 };
+
 // Edit profile picture
 export const editProfilePicture = async (req, res) => {
   try {
@@ -185,7 +205,7 @@ export const editProfilePicture = async (req, res) => {
       return res.status(404).json({ msg: 'User not found' });
     }
 
-    if (req.user._id !== req.params.id) {
+    if (req.user._id.toString() !== req.params.id) {
       return res.status(403).json({ msg: 'Unauthorized access' });
     }
 
@@ -193,15 +213,17 @@ export const editProfilePicture = async (req, res) => {
       return res.status(400).json({ msg: 'No profile picture to edit' });
     }
 
-    const publicId = user.profilePicture.split('/').pop().split('.')[0]; // استخراج publicId
-    const { transformation } = req.body; // مثال: { width: 200, height: 200, crop: 'fill' }
+    // Extract publicId from the existing Cloudinary URL
+    const publicId = user.profilePicture.split('/').pop().split('.')[0];
+    const { transformation } = req.body; // Example: { width: 200, height: 200, crop: 'fill' }
 
-    const result = await cloudinary.uploader.explicit(publicId, {
+    // Apply transformation to the existing image
+    const result = await cloudinary.uploader.explicit(`ProHealth/${publicId}`, {
       type: 'upload',
-      folder: 'ProHealth',
-      transformation: transformation || {},
+      transformation: transformation || { width: 200, height: 200, crop: 'fill' },
     });
 
+    // Update user with the new transformed image URL
     user.profilePicture = result.secure_url;
     await user.save();
 
@@ -226,7 +248,7 @@ export const getDoctorById = async (req, res) => {
       return res.status(404).json({ msg: 'Doctor not found' });
     }
 
-    if (req.user.role !== 'admin' && req.user._id !== req.params.id) {
+    if (req.user.role !== 'admin' && req.user._id.toString() !== req.params.id) {
       return res.status(403).json({ msg: 'Unauthorized access' });
     }
 
@@ -276,7 +298,6 @@ export const getDoctorForBooking = async (req, res) => {
     const doctor = await User.findById(req.params.id).select(
       'name specialty bio profilePicture phone'
     );
-    console.log('Queried doctor:', doctor); // Debug log
 
     if (!doctor) {
       return res
