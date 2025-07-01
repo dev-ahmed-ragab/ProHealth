@@ -54,4 +54,6 @@ mongoose
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
-module.exports = app; // تعديل التصدير ليكون الـ app كدالة افتراضية لـ Vercel
+// تصدير الـ app كافتراضي لـ Vercel و ESM
+export default app;
+export { cloudinary };
