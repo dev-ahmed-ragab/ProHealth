@@ -27,6 +27,9 @@
     "JWT_EXPIRE": "24h",
     "EMAIL_USER": "ahmedfortest9@gmail.com",
     "EMAIL_PASS": "ouot hvbl okfz cjzu",
-    "CLIENT_URL": "https://pro-health-wine.vercel.app/"
+    "CLIENT_URL": "https://pro-health-wine.vercel.app/",
+    "CLOUDINARY_CLOUD_NAME": "dn7s97ydy",
+    "CLOUDINARY_API_KEY": "661839662643331",
+    "CLOUDINARY_API_SECRET": "GydXCIzBQBFptgSEfjvWrODNUnQ"
   }
 }
