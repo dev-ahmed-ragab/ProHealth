@@ -1,12 +1,6 @@
 import User from '../models/User.js';
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import cloudinary from '../config/cloudinaryConfig.js';
-
-// Get __dirname equivalent in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import streamifier from 'streamifier';
 
 // Get single user by ID (accessible by admin or the user themselves)
 export const getUserById = async (req, res) => {
@@ -156,41 +150,46 @@ export const uploadProfilePicture = async (req, res) => {
       return res.status(400).json({ msg: 'No file uploaded' });
     }
 
-    // Upload image to Cloudinary
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: 'ProHealth',
-      resource_type: 'image',
-    });
-
-    // Delete previous profile picture from Cloudinary if it exists
-    if (user.profilePicture) {
-      const publicId = user.profilePicture.split('/').pop().split('.')[0];
-      await cloudinary.uploader.destroy(`ProHealth/${publicId}`);
+    // Check if file buffer exists
+    if (!req.file.buffer || req.file.buffer.length === 0) {
+      return res.status(400).json({ msg: 'Invalid file data' });
     }
 
-    // Delete temporary file
-    try {
-      await fs.unlink(req.file.path);
-    } catch (unlinkErr) {
-      console.warn('Failed to delete temporary file:', unlinkErr.message);
-    }
+    // Stream the file buffer to Cloudinary
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { folder: 'ProHealth', resource_type: 'image' },
+      async (error, result) => {
+        if (error) {
+          console.error('Cloudinary upload error:', error);
+          return res.status(500).json({ msg: 'Failed to upload to Cloudinary', error: error.message });
+        }
 
-    // Update user with new Cloudinary URL
-    user.profilePicture = result.secure_url;
-    user.hasProfilePicture = true;
-    await user.save();
+        // Delete previous profile picture from Cloudinary if it exists
+        if (user.profilePicture) {
+          const publicId = user.profilePicture.split('/').pop().split('.')[0];
+          await cloudinary.uploader.destroy(`ProHealth/${publicId}`);
+        }
 
-    // Verify the update
-    const updatedUser = await User.findById(req.params.id);
-    if (!updatedUser.profilePicture.startsWith('https://res.cloudinary.com/')) {
-      return res.status(500).json({ msg: 'Failed to save Cloudinary URL' });
-    }
+        // Update user with new Cloudinary URL
+        user.profilePicture = result.secure_url;
+        user.hasProfilePicture = true;
+        await user.save();
 
-    res.json({
-      msg: 'Profile picture uploaded successfully',
-      profilePicture: updatedUser.profilePicture,
-      hasProfilePicture: updatedUser.hasProfilePicture,
-    });
+        const updatedUser = await User.findById(req.params.id);
+        if (!updatedUser.profilePicture.startsWith('https://res.cloudinary.com/')) {
+          return res.status(500).json({ msg: 'Failed to save Cloudinary URL' });
+        }
+
+        res.json({
+          msg: 'Profile picture uploaded successfully',
+          profilePicture: updatedUser.profilePicture,
+          hasProfilePicture: updatedUser.hasProfilePicture,
+        });
+      }
+    );
+
+    // Use streamifier to stream the buffer to Cloudinary
+    streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
   } catch (err) {
     console.error('Upload error:', err);
     res.status(500).json({ msg: 'Server error during upload', error: err.message });

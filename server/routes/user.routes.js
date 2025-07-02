@@ -19,27 +19,23 @@ import {
 } from '../middleware/auth.middleware.js';
 import multer from 'multer';
 import { check } from 'express-validator';
+import path from 'path';
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${req.user._id}-${Date.now()}-${file.originalname}`);
-  },
-});
+// Configure multer for memory storage
+const storage = multer.memoryStorage();
+const fileFilter = (req, file, cb) => {
+  const filetypes = /jpeg|jpg|png/;
+  const mimetype = filetypes.test(file.mimetype);
+  const extname = filetypes.test(file.originalname.toLowerCase());
+  if (mimetype && extname) {
+    return cb(null, true);
+  }
+  cb(new Error('Only JPEG or PNG images are allowed'));
+};
+
 const upload = multer({
   storage,
-  fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png/;
-    const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(file.originalname.toLowerCase());
-    if (mimetype && extname) {
-      return cb(null, true);
-    }
-    cb(new Error('يجب أن تكون الصورة بصيغة JPEG أو PNG'));
-  },
+  fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
 });
 
@@ -59,10 +55,10 @@ router.put(
   '/:id',
   [
     authMiddleware,
-    check('name', 'الاسم مطلوب').optional().notEmpty().trim(),
-    check('email', 'البريد الإلكتروني غير صالح').optional().isEmail(),
-    check('phone', 'رقم الهاتف غير صالح').optional().isMobilePhone(),
-    check('bio', 'الوصف يجب ألا يتجاوز 500 حرف')
+    check('name', 'Name is required').optional().notEmpty().trim(),
+    check('email', 'Invalid email').optional().isEmail(),
+    check('phone', 'Invalid phone number').optional().isMobilePhone(),
+    check('bio', 'Bio must not exceed 500 characters')
       .optional()
       .isLength({ max: 500 }),
   ],
@@ -72,10 +68,10 @@ router.post(
   '/:id/password',
   [
     authMiddleware,
-    check('currentPassword', 'كلمة المرور الحالية مطلوبة').notEmpty(),
+    check('currentPassword', 'Current password is required').notEmpty(),
     check(
       'newPassword',
-      'كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل'
+      'New password must be at least 8 characters'
     ).isLength({ min: 8 }),
   ],
   updatePassword
