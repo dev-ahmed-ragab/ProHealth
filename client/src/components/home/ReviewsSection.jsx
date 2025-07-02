@@ -164,6 +164,7 @@ const ReviewsSection = () => {
             order: { xs: 2, md: 0 },
             display: 'flex',
             justifyContent: { xs: 'center', md: 'flex-end' },
+            marginLeft:'auto' 
           }}
         >
           <Card
@@ -182,6 +183,7 @@ const ReviewsSection = () => {
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
+              sx: { marginLeft:'auto' },
             }}
             role="article"
             aria-label={`Review by ${reviews[activeIndex].name}`}

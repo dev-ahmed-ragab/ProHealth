@@ -146,13 +146,14 @@ const DoctorsPage = () => {
         role="region"
         aria-label="Doctors Page"
       >
-        <Grid container spacing={{ xs: 2, sm: 3, md: 3 }}>
+        <Grid container spacing={{ xs: 2, sm: 3, md: 3 }} margin={'auto'}>
           {filteredDoctors.map((doctor) => (
-            <Grid item key={doctor._id} xs={12} sm={6} md={4}>
+            <Grid item key={doctor._id} xs={12} sm={6} md={4} margin='auto'>
               <Card
                 sx={{
-                  height: '450px',
-                  width: '250px',
+                  height: 'auto',
+                  width: '100%',
+                  maxWidth: '400px',
                   display: 'flex',
                   flexDirection: 'column',
                   borderRadius: '12px',
@@ -170,7 +171,7 @@ const DoctorsPage = () => {
                 <CardMedia
                   component="img"
                   image={
-                    `https://pro-health-backend.vercel.app/${doctor.profilePicture}` ||
+                    `${doctor.profilePicture}` ||
                     '/default-doctor.jpg'
                   }
                   alt={doctor.name}
@@ -180,6 +181,7 @@ const DoctorsPage = () => {
                     objectFit: 'cover',
                   }}
                 />
+                {console.log(doctor.profilePicture)}
                 <CardContent sx={{ flexGrow: 1, px: 2.5, pt: 2 }}>
                   <Typography
                     variant="h6"

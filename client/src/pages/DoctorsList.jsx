@@ -7,7 +7,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow,
+ TableRow,
   Paper,
 } from '@mui/material';
 import axios from 'axios';
@@ -36,17 +36,17 @@ const DoctorsList = () => {
   return (
     <Container>
       <Typography variant="h5" gutterBottom>
-        جميع الأطباء
+        All Doctors
       </Typography>
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>الاسم</TableCell>
-              <TableCell>البريد الإلكتروني</TableCell>
-              <TableCell>التخصص</TableCell>
-              <TableCell>رقم الهاتف</TableCell>
-              <TableCell>الصورة الشخصية</TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell>Email</TableCell>
+              <TableCell>Specialty</TableCell>
+              <TableCell>Phone Number</TableCell>
+              <TableCell>Profile Picture</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -54,8 +54,8 @@ const DoctorsList = () => {
               <TableRow key={doctor._id}>
                 <TableCell>{doctor.name}</TableCell>
                 <TableCell>{doctor.email}</TableCell>
-                <TableCell>{doctor.specialty || 'غير محدد'}</TableCell>
-                <TableCell>{doctor.phone || 'غير متوفر'}</TableCell>
+                <TableCell>{doctor.specialty || 'Not specified'}</TableCell>
+                <TableCell>{doctor.phone || 'Not available'}</TableCell>
                 <TableCell>
                   {doctor.profilePicture ? (
                     <img
@@ -64,7 +64,7 @@ const DoctorsList = () => {
                       style={{ width: 50, height: 50, borderRadius: '50%' }}
                     />
                   ) : (
-                    'لا توجد صورة'
+                    'No image'
                   )}
                 </TableCell>
               </TableRow>

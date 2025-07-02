@@ -81,6 +81,7 @@ const ProfilePage = () => {
       const updatedUser = {
         ...user,
         profilePicture: response.data.profilePicture,
+        hasProfilePicture: response.data.hasProfilePicture,
       };
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -172,6 +173,7 @@ const ProfilePage = () => {
           setUser((prev) => ({
             ...prev,
             profilePicture: result.profilePicture,
+            hasProfilePicture: true,
           }));
         }
       } catch (err) {
@@ -266,41 +268,72 @@ const ProfilePage = () => {
   return (
     <Box
       sx={{
-        maxWidth: '1400px',
-        mx: 'auto',
         width: '100%',
+        minHeight: '100vh',
         px: { xs: 2, sm: 3, md: 4 },
-        py: { xs: 10, md: 16 },
+        py: 0,
       }}
     >
-      <Card
+      <Box
         sx={{
-          maxWidth: 600,
-          mx: 'auto',
-          p: { xs: 2, md: 3 },
-          backgroundColor: '#fff',
-          borderRadius: '12px',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+          width: '100vw',
+          position: 'relative',
+          left: '50%',
+          right: '50%',
+          marginLeft: '-50vw',
+          marginRight: '-50vw',
+          height: '25vh',
+          background: 'linear-gradient(45deg, #88DADE, #0097A7, #F1F4F8, #005C97)',
+          backgroundSize: '400% 400%',
+          animation: 'randomGradientAnimation 12s ease-in-out infinite',
+          borderRadius: '12px 12px 0 0',
+          top: 0,
         }}
       >
-        <CardContent>
-          <Box display="flex" alignItems="center" flexDirection="column" mb={3}>
+        <style>
+          {`
+            @keyframes randomGradientAnimation {
+              0% { background-position: 0% 50%; }
+              20% { background-position: 80% 30%; }
+              40% { background-position: 20% 70%; }
+              60% { background-position: 90% 40%; }
+              80% { background-position: 30% 60%; }
+              100% { background-position: 0% 50%; }
+            }
+          `}
+        </style>
+        <Box
+          sx={{
+            maxWidth: '1400px',
+            mx: 'auto',
+            position: 'relative',
+            bottom: -50,
+            display: 'flex',
+            alignItems: 'flex-end',
+            px: { xs: 2, sm: 3, md: 4 },
+          }}
+        >
+          <Box sx={{ position: 'relative' }}>
             <Avatar
-              src={
-                profilePicture
-                  ? `https://pro-health-backend.vercel.app/${profilePicture}`
-                  : undefined
-              }
-              sx={{ width: 100, height: 100, mb: 2 }}
+              src={profilePicture || undefined}
+              sx={{
+                width: 100,
+                height: 100,
+                borderRadius: '12px',
+                border: '2px solid #fff',
+              }}
             />
             <IconButton
               component="label"
               sx={{
-                backgroundColor: '#1A3C5A',
+                backgroundColor: '#FF5722',
                 color: '#fff',
-                '&:hover': { backgroundColor: '#005C97' },
+                '&:hover': { backgroundColor: '#E64A19' },
                 borderRadius: '50%',
-                p: 1,
+                p: 0.5,
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
               }}
               aria-label="Upload profile picture"
             >
@@ -310,60 +343,83 @@ const ProfilePage = () => {
                 accept="image/jpeg,image/png"
                 onChange={handleFileChange}
               />
-              <PhotoCameraIcon />
+              <PhotoCameraIcon fontSize="small" />
             </IconButton>
           </Box>
+          <Typography
+            variant="h3"
+            sx={{
+              fontSize: { xs: '1.5rem', sm: '1.8rem', md: '2.5rem' },
+              fontWeight: 700,
+              color: '#F1F4F8',
+              ml: 2,
+            }}
+          >
+            {user.name || 'Not available'}
+          </Typography>
+        </Box>
+      </Box>
+      <Card
+        sx={{
+          maxWidth: '1400px',
+          mx: 'auto',
+          mt: 10,
+          p: { xs: 2, md: 3 },
+          backgroundColor: '#F5F7FA',
+          borderRadius: '0 0 12px 12px',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+        }}
+      >
+        <CardContent>
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
             </Alert>
           )}
-          <Typography
-            variant="h3"
-            align="center"
-            gutterBottom
+          <Box sx={{ p: 2, borderRadius: '8px' }}>
+            <Typography
+              variant="body1"
+              gutterBottom
+              sx={{ fontSize: { xs: '0.85rem', md: '1rem' } }}
+            >
+              <strong style={{ color: '#1A3C5A' }}>Email:</strong>{' '}
+              {user.email || 'Not available'}
+            </Typography>
+            <Typography
+              variant="body1"
+              gutterBottom
+              sx={{ fontSize: { xs: '0.85rem', md: '1rem' } }}
+            >
+              <strong style={{ color: '#1A3C5A' }}>Phone:</strong>{' '}
+              {user.phone || 'Not available'}
+            </Typography>
+            <Typography
+              variant="body1"
+              gutterBottom
+              sx={{ fontSize: { xs: '0.85rem', md: '1rem' } }}
+            >
+              <strong style={{ color: '#1A3C5A' }}>Bio:</strong>{' '}
+              {user.bio || 'Not available'}
+            </Typography>
+            <Typography
+              variant="body1"
+              gutterBottom
+              sx={{ fontSize: { xs: '0.85rem', md: '1rem' } }}
+            >
+              <strong style={{ color: '#1A3C5A' }}>Role:</strong>{' '}
+              {user.role
+                ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
+                : 'Not available'}
+            </Typography>
+          </Box>
+          <Box
             sx={{
-              fontSize: { xs: '1.5rem', sm: '1.8rem', md: '2.5rem' },
-              fontWeight: 700,
-              color: '#005C97',
-              lineHeight: 1.3,
-              letterSpacing: '-0.5px',
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+              gap: 2,
+              mt: 4,
             }}
           >
-            {user.name || 'Not available'}
-          </Typography>
-          <Typography
-            variant="body1"
-            gutterBottom
-            sx={{ color: '#4A6B8A', fontSize: { xs: '0.85rem', md: '1rem' } }}
-          >
-            <strong>Email:</strong> {user.email || 'Not available'}
-          </Typography>
-          <Typography
-            variant="body1"
-            gutterBottom
-            sx={{ color: '#4A6B8A', fontSize: { xs: '0.85rem', md: '1rem' } }}
-          >
-            <strong>Phone:</strong> {user.phone || 'Not available'}
-          </Typography>
-          <Typography
-            variant="body1"
-            gutterBottom
-            sx={{ color: '#4A6B8A', fontSize: { xs: '0.85rem', md: '1rem' } }}
-          >
-            <strong>Bio:</strong> {user.bio || 'Not available'}
-          </Typography>
-          <Typography
-            variant="body1"
-            gutterBottom
-            sx={{ color: '#4A6B8A', fontSize: { xs: '0.85rem', md: '1rem' } }}
-          >
-            <strong>Role:</strong>{' '}
-            {user.role
-              ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
-              : 'Not available'}
-          </Typography>
-          <Stack direction="column" spacing={2} mt={4}>
             <Button
               variant="contained"
               onClick={handleEditOpen}
@@ -458,7 +514,7 @@ const ProfilePage = () => {
             >
               Log Out
             </Button>
-          </Stack>
+          </Box>
         </CardContent>
       </Card>
 

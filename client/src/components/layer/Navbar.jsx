@@ -48,6 +48,13 @@ function Navbar() {
     { label: 'Find Doctor', path: '/find-doctor' },
     { label: 'Service', path: '/service' },
     { label: 'Contact Us', path: '/contact' },
+    // Add Login and Create Account for non-logged-in users in mobile menu
+    ...(!user
+      ? [
+          { label: 'Login', path: '/login' },
+          { label: 'Create Account', path: '/register' },
+        ]
+      : []),
   ];
 
   // Dropdown items for user profile icon
@@ -104,31 +111,33 @@ function Navbar() {
             justifyContent: 'center',
           }}
         >
-          {menuItems.map((item) => (
-            <Button
-              key={item.path}
-              color="inherit"
-              component={Link}
-              to={item.path}
-              sx={{
-                color: '#1A3C5A',
-                fontWeight: 600,
-                fontSize: { xs: '0.9rem', md: '1rem' },
-                textTransform: 'none',
-                '&:hover': {
-                  color: '#00ACC1',
-                  backgroundColor: 'transparent',
-                },
-              }}
-            >
-              {item.label}
-            </Button>
-          ))}
+          {menuItems
+            .filter((item) => !['Login', 'Create Account'].includes(item.label))
+            .map((item) => (
+              <Button
+                key={item.path}
+                color="inherit"
+                component={Link}
+                to={item.path}
+                sx={{
+                  color: '#1A3C5A',
+                  fontWeight: 600,
+                  fontSize: { xs: '0.9rem', md: '1rem' },
+                  textTransform: 'none',
+                  '&:hover': {
+                    color: '#00ACC1',
+                    backgroundColor: 'transparent',
+                  },
+                }}
+              >
+                {item.label}
+              </Button>
+            ))}
         </Box>
 
         {/* Right Side Buttons / Icons */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto' }}>
-          {/* Auth Buttons for non-logged users */}
+          {/* Auth Buttons for non-logged users on desktop */}
           {!user && (
             <>
               <Button

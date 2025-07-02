@@ -32,7 +32,7 @@ const AvailableSlots = () => {
         });
         setDoctors(response.data);
       } catch (error) {
-        toast.error('خطأ في جلب قائمة الأطباء');
+        toast.error('Error fetching doctors list');
       }
     };
     fetchDoctors();
@@ -50,7 +50,7 @@ const AvailableSlots = () => {
           );
           setSlots(response.data.data);
         } catch (error) {
-          toast.error('خطأ في جلب المواعيد المتاحة');
+          toast.error('Error fetching available slots');
         }
       }
     };
@@ -81,7 +81,7 @@ const AvailableSlots = () => {
           textAlign: 'left',
         }}
       >
-        المواعيد المتاحة
+        Available Appointments
       </Typography>
       <Grid container spacing={{ xs: 2, sm: 3, md: 3 }}>
         <Grid item xs={12} md={6}>
@@ -116,7 +116,7 @@ const AvailableSlots = () => {
                   borderColor: '#00ACC1',
                 },
               }}
-              aria-label="اختر طبيب"
+              aria-label="Select Doctor"
             >
               <MenuItem value="" disabled>
                 <Typography
@@ -126,7 +126,7 @@ const AvailableSlots = () => {
                     fontSize: { xs: '0.95rem', md: '1rem' },
                   }}
                 >
-                  اختر طبيب
+                  Select Doctor
                 </Typography>
               </MenuItem>
               {doctors.map((doctor) => (
@@ -165,7 +165,7 @@ const AvailableSlots = () => {
             <TextField
               fullWidth
               type="date"
-              label="التاريخ"
+              label="Date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
               InputLabelProps={{ shrink: true }}
@@ -180,7 +180,7 @@ const AvailableSlots = () => {
                   borderColor: '#00ACC1',
                 },
               }}
-              aria-label="اختر تاريخ الموعد"
+              aria-label="Select Appointment Date"
             />
           </Box>
         </Grid>
@@ -196,7 +196,7 @@ const AvailableSlots = () => {
             textAlign: 'left',
           }}
         >
-          المواعيد المتاحة:
+          Available Slots:
         </Typography>
         <List>
           {slots.length > 0 ? (
@@ -215,7 +215,7 @@ const AvailableSlots = () => {
                   },
                 }}
                 role="article"
-                aria-label={`موعد متاح: من ${slot.startTime} إلى ${slot.endTime}`}
+                aria-label={`Available slot: from ${slot.startTime} to ${slot.endTime}`}
               >
                 <ListItemText
                   primary={
@@ -227,7 +227,7 @@ const AvailableSlots = () => {
                         fontWeight: 600,
                       }}
                     >
-                      {`من ${slot.startTime} إلى ${slot.endTime}`}
+                      {`From ${slot.startTime} to ${slot.endTime}`}
                     </Typography>
                   }
                 />
@@ -238,7 +238,7 @@ const AvailableSlots = () => {
               variant="body2"
               sx={{ color: '#4A6B8A', fontSize: '0.9rem', lineHeight: 1.5 }}
             >
-              لا توجد مواعيد متاحة
+              No available slots
             </Typography>
           )}
         </List>

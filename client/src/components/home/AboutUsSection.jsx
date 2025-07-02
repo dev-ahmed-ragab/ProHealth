@@ -75,6 +75,7 @@ const AboutUsSection = () => {
               }}
             >
               {/* <CircularIconText /> */}
+              TOP
             </Box>
           </Box>
         </Grid>
