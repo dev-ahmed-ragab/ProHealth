@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   AppBar,
@@ -10,177 +10,190 @@ import {
   Menu,
   MenuItem,
   Box,
+  Avatar,
+  Divider,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircle from '@mui/icons-material/AccountCircle';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import EventIcon from '@mui/icons-material/Event';
+import PersonIcon from '@mui/icons-material/Person';
+import LogoutIcon from '@mui/icons-material/Logout';
+
+const navigation = [
+  { label: 'Home', path: '/' },
+  { label: 'Find a Doctor', path: '/find-doctor' },
+  { label: 'Services', path: '/service' },
+  { label: 'Contact Us', path: '/contact' },
+];
+
+const dashboardPath = (role) => {
+  if (role === 'admin') return '/admin-dashboard';
+  if (role === 'doctor') return '/doctor-dashboard';
+  return null;
+};
 
 function Navbar() {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const location = useLocation();
   const [anchorElNav, setAnchorElNav] = useState(null);
   const [anchorElUser, setAnchorElUser] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
 
-  // Track scroll position
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 40);
+    handleScroll();
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleOpenNavMenu = (event) => setAnchorElNav(event.currentTarget);
-  const handleCloseNavMenu = () => setAnchorElNav(null);
+  useEffect(() => {
+    setAnchorElNav(null);
+    setAnchorElUser(null);
+  }, [location.pathname]);
 
-  const handleOpenUserMenu = (event) => setAnchorElUser(event.currentTarget);
-  const handleCloseUserMenu = () => setAnchorElUser(null);
+  const isActive = (path) =>
+    path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
 
   const handleLogout = () => {
+    setAnchorElUser(null);
+    setAnchorElNav(null);
     logout();
-    navigate('/login');
-    handleCloseUserMenu();
   };
 
-  // Mobile Navigation Items
-  const menuItems = [
-    { label: 'Home', path: '/' },
-    { label: 'Find Doctor', path: '/find-doctor' },
-    { label: 'Service', path: '/service' },
-    { label: 'Contact Us', path: '/contact' },
-    // Add Login and Create Account for non-logged-in users in mobile menu
-    ...(!user
-      ? [
-          { label: 'Login', path: '/login' },
-          { label: 'Create Account', path: '/register' },
-        ]
-      : []),
-  ];
+  const profileId = user?.id || user?._id;
+  const dashboard = dashboardPath(user?.role);
 
-  // Dropdown items for user profile icon
-  const userMenuItems =
-    user && user.user
-      ? [
-          { label: 'Profile', path: `/profile/${user.user.id}` },
-          ...(user.user.role === 'admin'
-            ? [{ label: 'Admin Dashboard', path: '/admin-dashboard' }]
-            : []),
-          ...(user.user.role === 'doctor'
-            ? [{ label: 'Doctor Dashboard', path: '/doctor-dashboard' }]
-            : []),
-          ...(user.user.role === 'user'
-            ? [{ label: 'My Appointments', path: '/my-appointments' }]
-            : []),
-          { label: 'Logout', action: handleLogout },
-        ]
-      : [
-          { label: 'Login', path: '/login' },
-          { label: 'Create Account', path: '/register' },
-        ];
+  const userMenuItems = user
+    ? [
+        ...(dashboard
+          ? [{ label: 'Dashboard', path: dashboard, icon: <DashboardIcon /> }]
+          : []),
+        ...(user.role === 'user'
+          ? [
+              {
+                label: 'My Appointments',
+                path: '/my-appointments',
+                icon: <EventIcon />,
+              },
+            ]
+          : []),
+        ...(profileId
+          ? [
+              {
+                label: 'My Profile',
+                path: `/profile/${profileId}`,
+                icon: <PersonIcon />,
+              },
+            ]
+          : []),
+      ]
+    : [];
 
   return (
     <AppBar
       position="fixed"
+      elevation={0}
       sx={{
-        backgroundColor: isScrolled ? '#fff' : 'transparent',
-        boxShadow: isScrolled ? '0 4px 12px rgba(0, 0, 0, 0.1)' : 'none',
+        backgroundColor: isScrolled ? 'rgba(255,255,255,0.97)' : '#ffffff',
+        boxShadow: isScrolled ? '0 4px 16px rgba(0, 0, 0, 0.08)' : 'none',
         color: '#1A3C5A',
-        zIndex: 999,
+        zIndex: 1100,
+        backdropFilter: isScrolled ? 'blur(10px)' : 'none',
         transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
       }}
     >
-      <Toolbar sx={{ px: { xs: 2, md: 4 } }}>
-        {/* Logo - Always on the left */}
-        <Typography
-          variant="h6"
-          component={Link}
+      <Toolbar sx={{ px: { xs: 2, md: 4 }, minHeight: { xs: 64, md: 72 } }}>
+        <Box
+          component={RouterLink}
           to="/"
-          sx={{
-            flexGrow: 0,
-          }}
+          sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
+          aria-label="ProHealth home"
         >
-          <img src="/images/logo.png" alt="Logo" style={{ height: '60px' }} />
-        </Typography>
+          <Box
+            component="img"
+            src="/images/logo.png"
+            alt="ProHealth"
+            sx={{ height: { xs: 44, md: 54 }, objectFit: 'contain' }}
+          />
+        </Box>
 
-        {/* Desktop Navigation Links */}
         <Box
           sx={{
             display: { xs: 'none', md: 'flex' },
-            gap: 2,
+            gap: 1,
             flexGrow: 1,
             justifyContent: 'center',
           }}
         >
-          {menuItems
-            .filter((item) => !['Login', 'Create Account'].includes(item.label))
-            .map((item) => (
-              <Button
-                key={item.path}
-                color="inherit"
-                component={Link}
-                to={item.path}
-                sx={{
-                  color: '#1A3C5A',
-                  fontWeight: 600,
-                  fontSize: { xs: '0.9rem', md: '1rem' },
-                  textTransform: 'none',
-                  '&:hover': {
-                    color: '#00ACC1',
-                    backgroundColor: 'transparent',
-                  },
-                }}
-              >
-                {item.label}
-              </Button>
-            ))}
+          {navigation.map((item) => (
+            <Button
+              key={item.path}
+              component={RouterLink}
+              to={item.path}
+              sx={{
+                color: isActive(item.path) ? '#00ACC1' : '#1A3C5A',
+                fontWeight: 600,
+                fontSize: '0.95rem',
+                textTransform: 'none',
+                borderBottom: isActive(item.path)
+                  ? '2px solid #00ACC1'
+                  : '2px solid transparent',
+                borderRadius: 0,
+                px: 1.5,
+                py: 0.75,
+                '&:hover': {
+                  color: '#00ACC1',
+                  backgroundColor: 'transparent',
+                },
+              }}
+            >
+              {item.label}
+            </Button>
+          ))}
         </Box>
 
-        {/* Right Side Buttons / Icons */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto' }}>
-          {/* Auth Buttons for non-logged users on desktop */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: { xs: 0.5, sm: 1.5 },
+            ml: 'auto',
+          }}
+        >
           {!user && (
             <>
               <Button
-                color="inherit"
-                component={Link}
+                component={RouterLink}
                 to="/login"
                 aria-label="Login"
                 sx={{
                   color: '#1A3C5A',
                   fontWeight: 600,
-                  fontSize: { xs: '0.9rem', md: '1rem' },
                   textTransform: 'none',
                   display: { xs: 'none', md: 'inline-flex' },
-                  '&:hover': {
-                    color: '#00ACC1',
-                    backgroundColor: 'transparent',
-                  },
+                  '&:hover': { color: '#00ACC1', backgroundColor: 'transparent' },
                 }}
               >
                 Login
               </Button>
               <Button
                 variant="contained"
-                component={Link}
+                component={RouterLink}
                 to="/register"
                 aria-label="Create Account"
                 sx={{
                   backgroundColor: '#00ACC1',
                   color: '#fff',
-                  fontSize: { xs: '0.9rem', md: '1rem' },
                   fontWeight: 600,
-                  px: 3,
+                  px: 2.5,
                   py: 1,
                   borderRadius: '8px',
                   textTransform: 'none',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                  display: { xs: 'none', md: 'inline-flex' },
-                  '&:hover': {
-                    backgroundColor: '#0097A7',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-                  },
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+                  '&:hover': { backgroundColor: '#0097A7' },
                 }}
               >
                 Create Account
@@ -188,97 +201,150 @@ function Navbar() {
             </>
           )}
 
-          {/* Profile Icon with Dropdown for logged users */}
           {user && (
             <IconButton
-              onClick={handleOpenUserMenu}
-              color="inherit"
-              aria-label="User Profile"
-              sx={{ color: '#1A3C5A' }}
+              onClick={(event) => setAnchorElUser(event.currentTarget)}
+              aria-label="Open user menu"
+              aria-controls="menu-user"
+              aria-haspopup="true"
+              sx={{ p: 0.5 }}
             >
-              <AccountCircle sx={{ fontSize: 28 }} />
+              {user.profilePicture ? (
+                <Avatar
+                  src={user.profilePicture}
+                  alt={user.name || 'Profile'}
+                  sx={{ width: 36, height: 36 }}
+                />
+              ) : (
+                <AccountCircle sx={{ fontSize: 34, color: '#1A3C5A' }} />
+              )}
             </IconButton>
           )}
 
-          {/* Mobile Menu Button */}
           <IconButton
             size="large"
             edge="end"
-            color="inherit"
-            aria-label="Open mobile menu"
-            onClick={handleOpenNavMenu}
+            aria-label="Open navigation menu"
+            aria-controls="menu-appbar"
+            aria-haspopup="true"
+            onClick={(event) => setAnchorElNav(event.currentTarget)}
             sx={{ display: { xs: 'flex', md: 'none' }, color: '#1A3C5A' }}
           >
-            <MenuIcon sx={{ fontSize: 28 }} />
+            <MenuIcon />
           </IconButton>
         </Box>
       </Toolbar>
 
-      {/* Mobile Menu */}
+      {/* Mobile navigation */}
       <Menu
         id="menu-appbar"
         anchorEl={anchorElNav}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        keepMounted
-        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         open={Boolean(anchorElNav)}
-        onClose={handleCloseNavMenu}
+        onClose={() => setAnchorElNav(null)}
         sx={{ display: { xs: 'block', md: 'none' } }}
+        PaperProps={{ sx: { minWidth: 220 } }}
       >
-        {menuItems.map((item) => (
+        {navigation.map((item) => (
           <MenuItem
             key={item.path}
-            component={Link}
+            component={RouterLink}
             to={item.path}
-            onClick={handleCloseNavMenu}
-            sx={{ color: '#1A3C5A', fontWeight: 600 }}
+            selected={isActive(item.path)}
+            onClick={() => setAnchorElNav(null)}
           >
             {item.label}
           </MenuItem>
         ))}
+        <Divider />
+        {!user ? (
+          <>
+            <MenuItem
+              component={RouterLink}
+              to="/login"
+              onClick={() => setAnchorElNav(null)}
+            >
+              Login
+            </MenuItem>
+            <MenuItem
+              component={RouterLink}
+              to="/register"
+              onClick={() => setAnchorElNav(null)}
+            >
+              Create Account
+            </MenuItem>
+          </>
+        ) : (
+          <>
+            {userMenuItems.map((item) => (
+              <MenuItem
+                key={item.path}
+                component={RouterLink}
+                to={item.path}
+                onClick={() => setAnchorElNav(null)}
+              >
+                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemText>{item.label}</ListItemText>
+              </MenuItem>
+            ))}
+            <Divider />
+            <MenuItem onClick={handleLogout}>
+              <ListItemIcon>
+                <LogoutIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Logout</ListItemText>
+            </MenuItem>
+          </>
+        )}
       </Menu>
 
-      {/* User Profile Dropdown Menu */}
+      {/* Desktop user menu */}
       <Menu
         id="menu-user"
         anchorEl={anchorElUser}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        keepMounted
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         open={Boolean(anchorElUser)}
-        onClose={handleCloseUserMenu}
+        onClose={() => setAnchorElUser(null)}
         PaperProps={{
           sx: {
-            width: 220,
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            minWidth: 220,
+            borderRadius: '10px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+            mt: 1,
           },
         }}
       >
-        {userMenuItems.map((item, index) =>
-          item.action ? (
-            <MenuItem
-              key={index}
-              onClick={() => {
-                item.action();
-                handleCloseUserMenu();
-              }}
-              sx={{ color: '#1A3C5A', fontWeight: 600 }}
-            >
-              {item.label}
-            </MenuItem>
-          ) : (
-            <MenuItem
-              key={index}
-              component={Link}
-              to={item.path}
-              onClick={handleCloseUserMenu}
-              sx={{ color: '#1A3C5A', fontWeight: 600 }}
-            >
-              {item.label}
-            </MenuItem>
-          )
+        {user && (
+          <Box sx={{ px: 2, py: 1.5 }}>
+            <Typography sx={{ fontWeight: 700, color: '#1A3C5A' }} noWrap>
+              {user.name || 'Account'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" noWrap>
+              {user.email}
+            </Typography>
+          </Box>
         )}
+        <Divider />
+        {userMenuItems.map((item) => (
+          <MenuItem
+            key={item.path}
+            component={RouterLink}
+            to={item.path}
+            onClick={() => setAnchorElUser(null)}
+          >
+            <ListItemIcon>{item.icon}</ListItemIcon>
+            <ListItemText>{item.label}</ListItemText>
+          </MenuItem>
+        ))}
+        <Divider />
+        <MenuItem onClick={handleLogout}>
+          <ListItemIcon>
+            <LogoutIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Logout</ListItemText>
+        </MenuItem>
       </Menu>
     </AppBar>
   );

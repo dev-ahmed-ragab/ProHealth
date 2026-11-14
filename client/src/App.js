@@ -1,4 +1,11 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from 'react-router-dom';
+import { useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import HomePage from './pages/HomePage';
@@ -21,18 +28,28 @@ import { Container, Box } from '@mui/material';
 import Services from './pages/Services';
 import Contact from './pages/Contact';
 
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [pathname]);
+
+  return null;
+};
+
 function App() {
   return (
     <Router>
       <AuthProvider>
+        <ScrollToTop />
         <Box
           sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
         >
           <Navbar />
-          <Container maxWidth="xl" sx={{ flexGrow: 1 }}>
+          <Container maxWidth="xl" sx={{ flexGrow: 1, px: { xs: 0, sm: 2 } }}>
             <Routes>
-              {/* <ToastContainer /> */}
-              {/* Public Routes */}
+              {/* Public routes */}
               <Route path="/" element={<HomePage />} />
               <Route path="/find-doctor" element={<DoctorsPage />} />
               <Route path="/service" element={<Services />} />
@@ -53,7 +70,7 @@ function App() {
                 element={<VerifyEmailPage />}
               />
 
-              {/* Private Routes (for authenticated users) */}
+              {/* Any signed-in user */}
               <Route element={<PrivateRoute />}>
                 <Route path="/profile/:id" element={<ProfilePage />} />
                 <Route
@@ -64,15 +81,23 @@ function App() {
                   path="/my-appointments"
                   element={<MyAppointmentsPage />}
                 />
+              </Route>
+
+              {/* Doctors and admins */}
+              <Route element={<PrivateRoute roles={['doctor', 'admin']} />}>
                 <Route
                   path="/doctor-dashboard/*"
                   element={<DoctorDashboard />}
                 />
+              </Route>
+
+              {/* Admins only */}
+              <Route element={<PrivateRoute roles={['admin']} />}>
                 <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
               </Route>
 
-              {/* Not Found Route */}
               <Route path="/404" element={<NotFoundPage />} />
+              <Route path="/services" element={<Navigate to="/service" replace />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Container>

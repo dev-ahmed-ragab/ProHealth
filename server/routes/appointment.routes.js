@@ -1,7 +1,9 @@
 import express from 'express';
+import { check, query } from 'express-validator';
 import {
   createAppointment,
   getAppointments,
+  getDoctorAppointments,
   updateAppointmentStatus,
   cancelAppointment,
   updateAppointment,
@@ -10,10 +12,23 @@ import {
   getAvailableSlots,
 } from '../controllers/appointment.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
-import { check } from 'express-validator';
-import User from '../models/User.js';
+import validate from '../middleware/validate.js';
 
 const router = express.Router();
+
+const statusValues = ['pending', 'confirmed', 'cancelled', 'completed'];
+
+// Get available slots for a doctor on a specific date
+router.get(
+  '/available/:doctorId/:date',
+  [
+    authMiddleware,
+    check('doctorId', 'معرف الطبيب غير صالح').isMongoId(),
+    check('date', 'التاريخ غير صالح').isISO8601(),
+  ],
+  validate,
+  getAvailableSlots
+);
 
 // Create a new appointment
 router.post(
@@ -31,6 +46,7 @@ router.post(
       .trim()
       .notEmpty(),
   ],
+  validate,
   createAppointment
 );
 
@@ -39,51 +55,28 @@ router.get(
   '/',
   [
     authMiddleware,
-    check('page', 'الصفحة يجب أن تكون رقمًا').optional().isInt({ min: 1 }),
-    check('limit', 'الحد يجب أن يكون رقمًا').optional().isInt({ min: 1 }),
-    check('status', 'الحالة غير صالحة')
-      .optional()
-      .isIn(['pending', 'confirmed', 'cancelled', 'completed']),
+    query('page', 'الصفحة يجب أن تكون رقمًا').optional().isInt({ min: 1 }),
+    query('limit', 'الحد يجب أن يكون رقمًا').optional().isInt({ min: 1 }),
+    query('status', 'الحالة غير صالحة').optional().isIn(statusValues),
+    query('from', 'تاريخ البداية غير صالح').optional().isISO8601(),
+    query('to', 'تاريخ النهاية غير صالح').optional().isISO8601(),
   ],
+  validate,
   getAppointments
 );
 
-// Get doctor's appointments
+// Get a specific doctor's appointments (doctor themselves or an admin)
 router.get(
   '/doctor/:doctorId',
   [
     authMiddleware,
     check('doctorId', 'معرف الطبيب غير صالح').isMongoId(),
-    check('status', 'الحالة غير صالحة')
-      .optional()
-      .isIn(['pending', 'confirmed', 'cancelled', 'completed']),
-    check('from', 'تاريخ البداية غير صالح').optional().isISO8601(),
-    check('to', 'تاريخ النهاية غير صالح').optional().isISO8601(),
+    query('status', 'الحالة غير صالحة').optional().isIn(statusValues),
+    query('from', 'تاريخ البداية غير صالح').optional().isISO8601(),
+    query('to', 'تاريخ النهاية غير صالح').optional().isISO8601(),
   ],
-  async (req, res) => {
-    try {
-      const { doctorId } = req.params;
-      const { status, from, to } = req.query;
-
-      const doctor = await User.findOne({ _id: doctorId, role: 'doctor' });
-      if (!doctor) {
-        return res.status(404).json({
-          success: false,
-          message: 'الطبيب غير موجود',
-        });
-      }
-
-      req.user = { role: 'doctor', _id: doctorId };
-      return getAppointments(req, res);
-    } catch (error) {
-      console.error('Error in doctor appointments:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'خطأ في جلب مواعيد الطبيب',
-        error: error.message,
-      });
-    }
-  }
+  validate,
+  getDoctorAppointments
 );
 
 // Update appointment status
@@ -92,13 +85,9 @@ router.patch(
   [
     authMiddleware,
     check('id', 'معرف الموعد غير صالح').isMongoId(),
-    check('status', 'الحالة غير صالحة').isIn([
-      'pending',
-      'confirmed',
-      'cancelled',
-      'completed',
-    ]),
+    check('status', 'الحالة غير صالحة').isIn(statusValues),
   ],
+  validate,
   updateAppointmentStatus
 );
 
@@ -106,6 +95,7 @@ router.patch(
 router.delete(
   '/:id',
   [authMiddleware, check('id', 'معرف الموعد غير صالح').isMongoId()],
+  validate,
   deleteAppointment
 );
 
@@ -121,10 +111,11 @@ router.post(
       .trim()
       .notEmpty(),
   ],
+  validate,
   cancelAppointment
 );
 
-// Update an appointment
+// Update an appointment (reschedule)
 router.put(
   '/:id',
   [
@@ -140,24 +131,15 @@ router.put(
       .trim()
       .notEmpty(),
   ],
+  validate,
   updateAppointment
-);
-
-// Get available slots for a doctor on a specific date
-router.get(
-  '/available/:doctorId/:date',
-  [
-    authMiddleware,
-    check('doctorId', 'معرف الطبيب غير صالح').isMongoId(),
-    check('date', 'التاريخ غير صالح').isISO8601(),
-  ],
-  getAvailableSlots
 );
 
 // Get a specific appointment by ID
 router.get(
   '/:id',
   [authMiddleware, check('id', 'معرف الموعد غير صالح').isMongoId()],
+  validate,
   getAppointmentById
 );
 

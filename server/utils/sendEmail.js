@@ -1,51 +1,46 @@
 import nodemailer from 'nodemailer';
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  auth: {
-    user: 'ahmedfortest9@gmail.com',
-    pass: 'ouot hvbl okfz cjzu'
-  },
-  tls: {
-    rejectUnauthorized: true,
-    minVersion: 'TLSv1.2'
+let transporter;
+
+const getTransporter = () => {
+  if (transporter) return transporter;
+
+  const user = process.env.EMAIL_USER;
+  const pass = process.env.EMAIL_PASS;
+
+  if (!user || !pass) {
+    throw new Error(
+      'Email is not configured. Set EMAIL_USER and EMAIL_PASS environment variables.'
+    );
   }
-});
+
+  const port = Number(process.env.EMAIL_PORT || 587);
+
+  transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+    tls: {
+      rejectUnauthorized: true,
+      minVersion: 'TLSv1.2',
+    },
+  });
+
+  return transporter;
+};
 
 export default async function sendEmail({ to, subject, html }) {
   if (!to || !subject || !html) {
     throw new Error('Missing required email parameters');
   }
 
-  try {
-    const info = await transporter.sendMail({
-      from: `"${process.env.APP_NAME || 'Medical System'}" <${'ahmedfortest9@gmail.com'}>`,
-      to,
-      subject,
-      html,
-      headers: {
-        'X-Priority': '1',
-        'X-MSMail-Priority': 'High'
-      }
-    });
+  const info = await getTransporter().sendMail({
+    from: `"${process.env.APP_NAME || 'ProHealth'}" <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    html,
+  });
 
-    return info;
-  } catch (err) {
-    console.error('فشل في إرسال البريد الإلكتروني:');
-    console.error('رسالة الخطأ:', err.message);
-    console.error('تفاصيل الخطأ:', {
-      to,
-      subject,
-      emailConfig: {
-        host: transporter.options.host,
-        port: transporter.options.port,
-        secure: transporter.options.secure,
-        user: 'ahmedfortest9@gmail.com'
-      },
-      stack: err.stack
-    });
-    throw new Error('فشل في إرسال البريد الإلكتروني: ' + (err.message || 'خطأ غير معروف'))
-  }
+  return info;
 }

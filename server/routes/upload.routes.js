@@ -1,39 +1,56 @@
 import express from 'express';
 import cloudinary from '../config/cloudinaryConfig.js';
+import { authMiddleware } from '../middleware/auth.middleware.js';
 import upload from '../middleware/multer.js';
 import streamifier from 'streamifier';
 
 const router = express.Router();
 
-router.post('/upload', upload.single('image'), async (req, res) => {
-  try {
-    if (!req.file) {
-      throw new Error('No image uploaded. Please ensure the field name is "image"');
-    }
+router.post('/upload', authMiddleware, upload.single('image'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({
+      success: false,
+      message: 'No image uploaded. Please use the "image" field.',
+    });
+  }
 
-    // Stream the file buffer to Cloudinary
-    const uploadStream = cloudinary.uploader.upload_stream(
-      { folder: 'ProHealth', resource_type: 'image' },
-      (error, result) => {
-        if (error) {
-          console.error('Cloudinary upload error:', error);
-          return res.status(500).json({ message: 'Failed to upload image', error: error.message });
-        }
+  if (!req.file.buffer || req.file.buffer.length === 0) {
+    return res
+      .status(400)
+      .json({ success: false, message: 'The uploaded file is empty' });
+  }
 
-        res.status(200).json({
-          message: 'Image uploaded successfully',
-          imageUrl: result.secure_url,
-          publicId: result.public_id,
+  const uploadStream = cloudinary.uploader.upload_stream(
+    { folder: 'ProHealth', resource_type: 'image' },
+    (error, result) => {
+      if (error) {
+        console.error('Cloudinary upload error:', error.message);
+        return res.status(502).json({
+          success: false,
+          message: 'Image upload failed. Please try again.',
         });
       }
-    );
 
-    // Use streamifier to stream the buffer to Cloudinary
-    streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
-  } catch (error) {
-    console.error('Error during upload:', error.message);
-    res.status(500).json({ message: 'Error uploading image', error: error.message });
-  }
+      return res.status(200).json({
+        success: true,
+        message: 'Image uploaded successfully',
+        imageUrl: result.secure_url,
+        publicId: result.public_id,
+      });
+    }
+  );
+
+  uploadStream.on('error', (error) => {
+    console.error('Upload stream error:', error.message);
+    if (!res.headersSent) {
+      res.status(502).json({
+        success: false,
+        message: 'Image upload failed. Please try again.',
+      });
+    }
+  });
+
+  streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
 });
 
 export default router;

@@ -55,8 +55,10 @@ const appointmentSchema = new mongoose.Schema(
   }
 );
 
-// Prevent double bookings
-appointmentSchema.index({ doctor: 1, date: 1, startTime: 1 }, { unique: true });
+// Double bookings are prevented in the appointment controller, which ignores
+// cancelled appointments. A database-level unique index would keep a slot
+// locked forever after a cancellation.
+appointmentSchema.index({ doctor: 1, date: 1, startTime: 1 });
 
 // Virtuals for additional data
 appointmentSchema.virtual('patientInfo', {

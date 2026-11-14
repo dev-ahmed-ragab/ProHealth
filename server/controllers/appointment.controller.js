@@ -2,90 +2,117 @@ import Appointment from '../models/Appointment.js';
 import User from '../models/User.js';
 import moment from 'moment-timezone';
 
+const SLOT_MINUTES = 30;
+const WORK_START_HOUR = 8;
+const WORK_END_HOUR = 17;
+const ACTIVE_STATUSES = ['pending', 'confirmed'];
+
+const timeToMinutes = (time = '') => {
+  const [hours, minutes] = String(time).split(':').map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+  return hours * 60 + minutes;
+};
+
+const minutesToTime = (minutes) => {
+  const hours = String(Math.floor(minutes / 60)).padStart(2, '0');
+  const mins = String(minutes % 60).padStart(2, '0');
+  return `${hours}:${mins}`;
+};
+
+const isValidSlotStart = (time) => {
+  const minutes = timeToMinutes(time);
+  if (minutes === null) return false;
+  const workStart = WORK_START_HOUR * 60;
+  const workEnd = WORK_END_HOUR * 60 - SLOT_MINUTES;
+  return (
+    minutes >= workStart &&
+    minutes <= workEnd &&
+    minutes % SLOT_MINUTES === 0
+  );
+};
+
+const rangesOverlap = (aStart, aEnd, bStart, bEnd) =>
+  aStart < bEnd && aEnd > bStart;
+
+const startOfToday = () => moment.tz('UTC').startOf('day').toDate();
+
 // Get available appointment slots for a doctor on a specific date
 export const getAvailableSlots = async (req, res) => {
   try {
     const { doctorId, date } = req.params;
 
-    // التحقق من وجود الطبيب
     const doctor = await User.findOne({ _id: doctorId, role: 'doctor' });
     if (!doctor) {
-      return res.status(404).json({
-        success: false,
-        message: 'الطبيب غير موجود',
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: 'الطبيب غير موجود' });
     }
 
-    // تحويل التاريخ إلى بداية اليوم بتوقيت UTC
     const appointmentDate = moment.tz(date, 'UTC').startOf('day');
     if (!appointmentDate.isValid()) {
-      return res.status(400).json({
-        success: false,
-        message: 'التاريخ غير صالح',
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: 'التاريخ غير صالح' });
     }
 
-    // جلب المواعيد الموجودة للطبيب في التاريخ المحدد
+    if (appointmentDate.toDate() < startOfToday()) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'لا يمكن عرض فتحات في تاريخ ماضي' });
+    }
+
     const existingAppointments = await Appointment.find({
       doctor: doctorId,
       date: appointmentDate.toDate(),
-      status: { $in: ['pending', 'confirmed'] },
+      status: { $in: ACTIVE_STATUSES },
     })
       .select('startTime endTime')
       .lean();
 
-    // تحديد ساعات العمل
-    const workingHours = {
-      start: 8, // 8 صباحًا
-      end: 17, // 5 مساءً
-    };
+    const takenRanges = existingAppointments
+      .map((appointment) => ({
+        start: timeToMinutes(appointment.startTime),
+        end: timeToMinutes(appointment.endTime),
+      }))
+      .filter(({ start, end }) => start !== null && end !== null);
 
-    // إنشاء فتحات زمنية كل 30 دقيقة
-    const slotDuration = 30; // مدة الفتحة بالدقائق
+    const now = moment();
+    const isToday = appointmentDate.isSame(now, 'day');
     const availableSlots = [];
-    const startOfDay = moment(appointmentDate).add(workingHours.start, 'hours');
-    const endOfDay = moment(appointmentDate).add(workingHours.end, 'hours');
 
     for (
-      let slotStart = startOfDay;
-      slotStart < endOfDay;
-      slotStart.add(slotDuration, 'minutes')
+      let minutes = WORK_START_HOUR * 60;
+      minutes + SLOT_MINUTES <= WORK_END_HOUR * 60;
+      minutes += SLOT_MINUTES
     ) {
-      const slotEnd = moment(slotStart).add(slotDuration, 'minutes');
-      const startTime = slotStart.format('HH:mm');
-      const endTime = slotEnd.format('HH:mm');
+      const slotEnd = minutes + SLOT_MINUTES;
 
-      // التحقق من عدم وجود تداخل مع المواعيد الموجودة
-      const isSlotTaken = existingAppointments.some((apt) => {
-        const aptStart = moment(appointmentDate)
-          .add(parseInt(apt.startTime.split(':')[0]), 'hours')
-          .add(parseInt(apt.startTime.split(':')[1]), 'minutes');
-        const aptEnd = moment(appointmentDate)
-          .add(parseInt(apt.endTime.split(':')[0]), 'hours')
-          .add(parseInt(apt.endTime.split(':')[1]), 'minutes');
+      // Hide slots that already passed today.
+      if (
+        isToday &&
+        appointmentDate.clone().add(minutes, 'minutes').isBefore(now)
+      ) {
+        continue;
+      }
 
-        // التحقق من التداخل
-        return slotStart.isBefore(aptEnd) && slotEnd.isAfter(aptStart);
-      });
+      const isTaken = takenRanges.some(({ start, end }) =>
+        rangesOverlap(minutes, slotEnd, start, end)
+      );
 
-      if (!isSlotTaken) {
+      if (!isTaken) {
         availableSlots.push({
-          startTime,
-          endTime,
+          startTime: minutesToTime(minutes),
+          endTime: minutesToTime(slotEnd),
         });
       }
     }
 
-    res.json({
-      success: true,
-      data: availableSlots,
-    });
+    return res.json({ success: true, data: availableSlots });
   } catch (error) {
     console.error('Error getting available slots:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'خطأ في الخادم',
-    });
+    return res
+      .status(500)
+      .json({ success: false, message: 'خطأ في الخادم' });
   }
 };
 
@@ -96,10 +123,9 @@ export const deleteAppointment = async (req, res) => {
     const appointment = await Appointment.findById(id);
 
     if (!appointment) {
-      return res.status(404).json({
-        success: false,
-        message: 'الموعد غير موجود',
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: 'الموعد غير موجود' });
     }
 
     if (
@@ -107,24 +133,19 @@ export const deleteAppointment = async (req, res) => {
       appointment.patient.toString() !== req.user._id.toString() &&
       appointment.doctor.toString() !== req.user._id.toString()
     ) {
-      return res.status(403).json({
-        success: false,
-        message: 'غير مصرح لك بحذف هذا الموعد',
-      });
+      return res
+        .status(403)
+        .json({ success: false, message: 'غير مصرح لك بحذف هذا الموعد' });
     }
 
     await appointment.deleteOne();
 
-    res.json({
-      success: true,
-      message: 'تم حذف الموعد بنجاح',
-    });
+    return res.json({ success: true, message: 'تم حذف الموعد بنجاح' });
   } catch (error) {
     console.error('Error deleting appointment:', error);
-    res.status(500).json({
-      success: false,
-      message: 'خطأ في حذف الموعد',
-    });
+    return res
+      .status(500)
+      .json({ success: false, message: 'خطأ في حذف الموعد' });
   }
 };
 
@@ -132,6 +153,14 @@ export const deleteAppointment = async (req, res) => {
 export const createAppointment = async (req, res) => {
   try {
     const { doctorId, date, startTime, reason } = req.body;
+
+    if (!doctorId || !date || !startTime) {
+      return res.status(400).json({
+        success: false,
+        message: 'معرف الطبيب والتاريخ والوقت مطلوبة',
+      });
+    }
+
     const appointmentDate = moment.tz(date, 'UTC').startOf('day').toDate();
 
     const doctor = await User.findOne({ _id: doctorId, role: 'doctor' });
@@ -141,33 +170,35 @@ export const createAppointment = async (req, res) => {
         .json({ success: false, message: 'الطبيب غير موجود' });
     }
 
-    const today = moment.tz('UTC').startOf('day').toDate();
-    if (appointmentDate < today) {
+    if (appointmentDate < startOfToday()) {
       return res
         .status(400)
         .json({ success: false, message: 'لا يمكن حجز موعد في الماضي' });
     }
 
-    const [hours, minutes] = startTime.split(':').map(Number);
-    const endTimeDate = moment(appointmentDate)
-      .add({ hours, minutes })
-      .add(1, 'hour');
-    const endTime = endTimeDate.format('HH:mm');
+    if (!isValidSlotStart(startTime)) {
+      return res.status(400).json({
+        success: false,
+        message: 'الوقت غير صالح. اختر أحد الأوقات المتاحة.',
+      });
+    }
 
+    // A patient should not hold two active appointments with the same doctor
+    // for the same day and time.
     const conflictingAppointment = await Appointment.findOne({
       doctor: doctorId,
       date: appointmentDate,
+      status: { $in: ACTIVE_STATUSES },
       startTime,
-      status: { $in: ['pending', 'confirmed'] },
     });
 
     if (conflictingAppointment) {
-      return res.status(409).json({
-        success: false,
-        message: 'الوقت محجوز مسبقًا',
-        conflictingAppointment,
-      });
+      return res
+        .status(409)
+        .json({ success: false, message: 'هذا الوقت محجوز مسبقًا' });
     }
+
+    const endTime = minutesToTime(timeToMinutes(startTime) + SLOT_MINUTES);
 
     const appointment = new Appointment({
       patient: req.user._id,
@@ -175,76 +206,117 @@ export const createAppointment = async (req, res) => {
       date: appointmentDate,
       startTime,
       endTime,
-      reason,
+      reason: reason?.trim() || undefined,
       status: 'pending',
     });
 
     await appointment.save();
 
-    res.status(201).json({
-      success: true,
-      data: await Appointment.findById(appointment._id)
-        .populate('patientInfo')
-        .populate('doctorInfo'),
-    });
+    const populated = await Appointment.findById(appointment._id)
+      .populate('patientInfo')
+      .populate('doctorInfo');
+
+    return res.status(201).json({ success: true, data: populated });
   } catch (error) {
     console.error('Error in createAppointment:', error);
-    res.status(500).json({
-      success: false,
-      message: 'خطأ في الخادم',
-      error: error.message,
-    });
+    return res
+      .status(500)
+      .json({ success: false, message: 'تعذر إنشاء الموعد' });
   }
+};
+
+const listAppointments = async (req, res) => {
+  const { role, _id } = req.user;
+  const { status, from, to } = req.query;
+
+  const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+  const limit = Math.min(
+    Math.max(parseInt(req.query.limit, 10) || 10, 1),
+    100
+  );
+
+  const query = {};
+
+  if (role === 'user') {
+    query.patient = _id;
+  } else if (role === 'doctor') {
+    query.doctor = _id;
+  } else if (role !== 'admin') {
+    return res
+      .status(403)
+      .json({ success: false, message: 'غير مصرح لك' });
+  }
+
+  if (status) query.status = status;
+  if (from || to) {
+    query.date = {};
+    if (from) {
+      query.date.$gte = moment.tz(from, 'UTC').startOf('day').toDate();
+    }
+    if (to) {
+      query.date.$lte = moment.tz(to, 'UTC').endOf('day').toDate();
+    }
+  }
+
+  const appointments = await Appointment.find(query)
+    .populate('patientInfo')
+    .populate('doctorInfo')
+    .sort({ date: 1, startTime: 1 })
+    .skip((page - 1) * limit)
+    .limit(limit);
+
+  const total = await Appointment.countDocuments(query);
+
+  return res.json({
+    success: true,
+    data: appointments,
+    pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+  });
 };
 
 // Get all appointments for the authenticated user
 export const getAppointments = async (req, res) => {
   try {
-    const { role, _id } = req.user;
-    const { status, from, to, page = 1, limit = 10 } = req.query;
-    let query = {};
-
-    if (role === 'user') {
-      query.patient = _id;
-    } else if (role === 'doctor') {
-      query.doctor = _id;
-    } else if (role !== 'admin') {
-      return res.status(403).json({ success: false, message: 'غير مصرح لك' });
-    }
-
-    if (status) query.status = status;
-    if (from)
-      query.date = {
-        ...query.date,
-        $gte: moment.tz(from, 'UTC').startOf('day').toDate(),
-      };
-    if (to)
-      query.date = {
-        ...query.date,
-        $lte: moment.tz(to, 'UTC').endOf('day').toDate(),
-      };
-
-    const appointments = await Appointment.find(query)
-      .populate('patientInfo')
-      .populate('doctorInfo')
-      .sort({ date: 1, startTime: 1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
-
-    const total = await Appointment.countDocuments(query);
-
-    res.json({
-      success: true,
-      data: appointments,
-      pagination: { page: parseInt(page), limit: parseInt(limit), total },
-    });
+    return await listAppointments(req, res);
   } catch (error) {
     console.error('Error in getAppointments:', error);
-    res.status(500).json({
-      success: false,
-      message: 'خطأ في الخادم',
-      error: error.message,
+    return res
+      .status(500)
+      .json({ success: false, message: 'خطأ في جلب المواعيد' });
+  }
+};
+
+// Get a specific doctor's appointments (doctor themselves or an admin)
+export const getDoctorAppointments = async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+
+    if (
+      req.user.role !== 'admin' &&
+      req.user._id.toString() !== doctorId.toString()
+    ) {
+      return res
+        .status(403)
+        .json({ success: false, message: 'غير مصرح لك بمشاهدة هذه المواعيد' });
+    }
+
+    const doctor = await User.findOne({ _id: doctorId, role: 'doctor' });
+    if (!doctor) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'الطبيب غير موجود' });
+    }
+
+    const scopedRequest = Object.assign(Object.create(req), {
+      user: { role: 'doctor', _id: doctorId },
     });
+
+    return await listAppointments(scopedRequest, res);
+  } catch (error) {
+    console.error('Error in getDoctorAppointments:', error);
+    return res
+      .status(500)
+      .json({ success: false, message: 'خطأ في جلب مواعيد الطبيب' });
   }
 };
 
@@ -262,29 +334,46 @@ export const updateAppointmentStatus = async (req, res) => {
         .json({ success: false, message: 'الموعد غير موجود' });
     }
 
-    if (role === 'user' && appointment.patient.toString() !== _id.toString()) {
-      return res.status(403).json({ success: false, message: 'غير مصرح لك' });
+    if (role === 'user') {
+      return res.status(403).json({
+        success: false,
+        message: 'يمكنك إلغاء الموعد من صفحة مواعيدي',
+      });
     }
+
     if (role === 'doctor' && appointment.doctor.toString() !== _id.toString()) {
-      return res.status(403).json({ success: false, message: 'غير مصرح لك' });
+      return res
+        .status(403)
+        .json({ success: false, message: 'غير مصرح لك' });
+    }
+
+    if (['cancelled', 'completed'].includes(appointment.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'لا يمكن تعديل موعد مكتمل أو ملغي',
+      });
+    }
+
+    if (role === 'doctor' && status === 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'لا يمكن إرجاع الموعد إلى حالة الانتظار',
+      });
     }
 
     appointment.status = status;
     await appointment.save();
 
-    res.json({
-      success: true,
-      data: await Appointment.findById(appointment._id)
-        .populate('patientInfo')
-        .populate('doctorInfo'),
-    });
+    const populated = await Appointment.findById(appointment._id)
+      .populate('patientInfo')
+      .populate('doctorInfo');
+
+    return res.json({ success: true, data: populated });
   } catch (error) {
     console.error('Error in updateAppointmentStatus:', error);
-    res.status(500).json({
-      success: false,
-      message: 'خطأ في الخادم',
-      error: error.message,
-    });
+    return res
+      .status(500)
+      .json({ success: false, message: 'تعذر تحديث حالة الموعد' });
   }
 };
 
@@ -316,7 +405,7 @@ export const cancelAppointment = async (req, res) => {
     if (['completed', 'cancelled'].includes(appointment.status)) {
       return res.status(400).json({
         success: false,
-        message: `لا يمكن إلغاء موعد ${appointment.status}`,
+        message: 'لا يمكن إلغاء هذا الموعد',
       });
     }
 
@@ -327,23 +416,20 @@ export const cancelAppointment = async (req, res) => {
 
     await appointment.save();
 
-    res.json({
-      success: true,
-      data: await Appointment.findById(appointment._id)
-        .populate('patientInfo')
-        .populate('doctorInfo'),
-    });
+    const populated = await Appointment.findById(appointment._id)
+      .populate('patientInfo')
+      .populate('doctorInfo');
+
+    return res.json({ success: true, data: populated });
   } catch (error) {
     console.error('Error in cancelAppointment:', error);
-    res.status(500).json({
-      success: false,
-      message: 'خطأ في الخادم',
-      error: error.message,
-    });
+    return res
+      .status(500)
+      .json({ success: false, message: 'تعذر إلغاء الموعد' });
   }
 };
 
-// Update a specific appointment
+// Update (reschedule) a specific appointment
 export const updateAppointment = async (req, res) => {
   try {
     const { id } = req.params;
@@ -371,68 +457,62 @@ export const updateAppointment = async (req, res) => {
     if (['completed', 'cancelled'].includes(appointment.status)) {
       return res.status(400).json({
         success: false,
-        message: `لا يمكن تحديث موعد ${appointment.status}`,
+        message: 'لا يمكن تحديث موعد مكتمل أو ملغي',
       });
     }
 
-    if (date || startTime) {
-      const newDate = date
-        ? moment.tz(date, 'UTC').startOf('day').toDate()
-        : appointment.date;
-      const newStartTime = startTime || appointment.startTime;
-
-      const conflictingAppointment = await Appointment.findOne({
-        doctor: appointment.doctor,
-        date: newDate,
-        startTime: newStartTime,
-        _id: { $ne: id },
-        status: { $in: ['pending', 'confirmed'] },
+    if (startTime && !isValidSlotStart(startTime)) {
+      return res.status(400).json({
+        success: false,
+        message: 'الوقت غير صالح. اختر أحد الأوقات المتاحة.',
       });
-
-      if (conflictingAppointment) {
-        return res.status(409).json({
-          success: false,
-          message: 'الوقت الجديد محجوز',
-          conflictingAppointment,
-        });
-      }
-
-      if (date) {
-        if (newDate < moment.tz('UTC').startOf('day').toDate()) {
-          return res.status(400).json({
-            success: false,
-            message: 'لا يمكن تحديث الموعد إلى تاريخ في الماضي',
-          });
-        }
-        appointment.date = newDate;
-      }
-      if (startTime) {
-        appointment.startTime = newStartTime;
-        const [hours, minutes] = newStartTime.split(':').map(Number);
-        const endTimeDate = moment(newDate)
-          .add({ hours, minutes })
-          .add(1, 'hour');
-        appointment.endTime = endTimeDate.format('HH:mm');
-      }
     }
 
-    if (reason) appointment.reason = reason;
+    const newDate = date
+      ? moment.tz(date, 'UTC').startOf('day').toDate()
+      : appointment.date;
+    const newStartTime = startTime || appointment.startTime;
+
+    if (newDate < startOfToday()) {
+      return res.status(400).json({
+        success: false,
+        message: 'لا يمكن تحديث الموعد إلى تاريخ في الماضي',
+      });
+    }
+
+    const conflictingAppointment = await Appointment.findOne({
+      doctor: appointment.doctor,
+      date: newDate,
+      _id: { $ne: id },
+      status: { $in: ACTIVE_STATUSES },
+      startTime: newStartTime,
+    });
+
+    if (conflictingAppointment) {
+      return res
+        .status(409)
+        .json({ success: false, message: 'الوقت الجديد محجوز' });
+    }
+
+    appointment.date = newDate;
+    appointment.startTime = newStartTime;
+    appointment.endTime = minutesToTime(
+      timeToMinutes(newStartTime) + SLOT_MINUTES
+    );
+    if (reason !== undefined) appointment.reason = reason?.trim() || undefined;
 
     await appointment.save();
 
-    res.json({
-      success: true,
-      data: await Appointment.findById(appointment._id)
-        .populate('patientInfo')
-        .populate('doctorInfo'),
-    });
+    const populated = await Appointment.findById(appointment._id)
+      .populate('patientInfo')
+      .populate('doctorInfo');
+
+    return res.json({ success: true, data: populated });
   } catch (error) {
     console.error('Error in updateAppointment:', error);
-    res.status(500).json({
-      success: false,
-      message: 'خطأ في الخادم',
-      error: error.message,
-    });
+    return res
+      .status(500)
+      .json({ success: false, message: 'تعذر تحديث الموعد' });
   }
 };
 
@@ -463,13 +543,11 @@ export const getAppointmentById = async (req, res) => {
         .json({ success: false, message: 'غير مصرح بمشاهدة هذا الموعد' });
     }
 
-    res.json({ success: true, data: appointment });
+    return res.json({ success: true, data: appointment });
   } catch (error) {
     console.error('Error in getAppointmentById:', error);
-    res.status(500).json({
-      success: false,
-      message: 'خطأ في الخادم',
-      error: error.message,
-    });
+    return res
+      .status(500)
+      .json({ success: false, message: 'خطأ في جلب الموعد' });
   }
 };
