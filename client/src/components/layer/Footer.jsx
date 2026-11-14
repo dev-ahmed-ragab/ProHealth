@@ -17,6 +17,7 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 const Footer = () => {
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [subscribed, setSubscribed] = useState(false);
 
   const validateEmail = (value) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -31,6 +32,7 @@ const Footer = () => {
   const handleEmailChange = (e) => {
     const value = e.target.value;
     setEmail(value);
+    setSubscribed(false);
     setEmailError(validateEmail(value));
   };
 
@@ -39,9 +41,8 @@ const Footer = () => {
     const error = validateEmail(email);
     setEmailError(error);
     if (!error) {
-      // Handle subscription logic (e.g., API call)
-      console.log('Subscribed with:', email);
       setEmail('');
+      setSubscribed(true);
     }
   };
 
@@ -163,6 +164,15 @@ const Footer = () => {
                   </Button>
                 </Grid>
               </Grid>
+              {subscribed && (
+                <Typography
+                  role="status"
+                  variant="body2"
+                  sx={{ mt: 1.5, color: '#E0F7FA', fontWeight: 600 }}
+                >
+                  You're subscribed — thanks for joining our newsletter.
+                </Typography>
+              )}
             </Box>
           </Grid>
 

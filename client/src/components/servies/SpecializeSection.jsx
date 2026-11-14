@@ -51,7 +51,7 @@ const SpecializeSection = () => {
     <Box
       sx={{
         py: { xs: 6, md: 8 },
-        width: '100vw',
+        width: '100%',
         overflow: 'hidden',
       }}
     >

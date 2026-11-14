@@ -1,301 +1,317 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
+  Alert,
   Box,
-  Typography,
-  Select,
-  MenuItem,
-  TextField,
-  Grid,
   Button,
+  Chip,
+  CircularProgress,
+  Grid,
+  MenuItem,
+  Paper,
+  Select,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
 } from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
-import axios from 'axios';
-import { toast } from 'react-toastify';
-import { useNavigate } from 'react-router-dom';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import api, { getErrorMessage, toList } from '../api';
 
-const columns = [
-  { field: 'id', headerName: 'Appointment ID', width: 120 },
-  { field: 'patientName', headerName: 'Patient Name', width: 150 },
-  { field: 'date', headerName: 'Date', width: 120 },
-  { field: 'startTime', headerName: 'Start Time', width: 100 },
-  { field: 'endTime', headerName: 'End Time', width: 100 },
-  { field: 'status', headerName: 'Status', width: 120 },
-  { field: 'reason', headerName: 'Reason', width: 200 },
-];
+const STATUS_STYLES = {
+  pending: { label: 'Pending', color: 'warning' },
+  confirmed: { label: 'Confirmed', color: 'success' },
+  completed: { label: 'Completed', color: 'info' },
+  cancelled: { label: 'Cancelled', color: 'default' },
+};
 
-const statusOptions = ['pending', 'confirmed', 'cancelled', 'completed'];
+const formatDate = (value) => {
+  if (!value) return 'No date';
+  return new Date(value).toLocaleDateString(undefined, {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
 
 function DoctorAppointments() {
-  const [doctorId, setDoctorId] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const doctorFromUrl = searchParams.get('doctor') || '';
+
   const [doctors, setDoctors] = useState([]);
+  const [doctorId, setDoctorId] = useState(doctorFromUrl);
   const [appointments, setAppointments] = useState([]);
   const [filters, setFilters] = useState({ status: '', from: '', to: '' });
-  const navigate = useNavigate();
+  const [loadingDoctors, setLoadingDoctors] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchDoctors = async () => {
+    let cancelled = false;
+
+    const load = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get('/api/users/doctors', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setDoctors(response.data);
-      } catch (error) {
-        toast.error('Error fetching doctors');
+        const response = await api.get('/api/users/protected/doctors');
+        if (cancelled) return;
+        const list = toList(response.data).sort((a, b) =>
+          String(a.name || '').localeCompare(String(b.name || ''))
+        );
+        setDoctors(list);
+        if (!doctorFromUrl && list.length > 0) {
+          setDoctorId(list[0]._id);
+        }
+      } catch (err) {
+        if (!cancelled) setError(getErrorMessage(err, 'Could not load doctors.'));
+      } finally {
+        if (!cancelled) setLoadingDoctors(false);
       }
     };
-    fetchDoctors();
-  }, []);
 
-  const fetchAppointments = async () => {
-    if (!doctorId) return;
-    try {
-      const token = localStorage.getItem('token');
-      const query = new URLSearchParams(filters).toString();
-      const response = await axios.get(
-        `/api/appointments/doctor/${doctorId}?${query}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setAppointments(
-        response.data.data.map((appt) => ({
-          id: appt._id,
-          patientName: appt.patientInfo?.name || 'Unknown',
-          date: new Date(appt.date).toLocaleDateString('en-US'),
-          startTime: appt.startTime,
-          endTime: appt.endTime,
-          status: appt.status,
-          reason: appt.reason || 'None',
-        }))
-      );
-    } catch (error) {
-      toast.error('Error fetching appointments');
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [doctorFromUrl]);
+
+  const loadAppointments = useCallback(async () => {
+    if (!doctorId) {
+      setAppointments([]);
+      return;
     }
-  };
 
-  useEffect(() => {
-    fetchAppointments();
+    setLoading(true);
+    try {
+      const params = {};
+      if (filters.status) params.status = filters.status;
+      if (filters.from) params.from = filters.from;
+      if (filters.to) params.to = filters.to;
+      params.limit = 100;
+
+      const response = await api.get(`/api/appointments/doctor/${doctorId}`, { params });
+      setAppointments(toList(response.data));
+      setError('');
+    } catch (err) {
+      setAppointments([]);
+      setError(getErrorMessage(err, "Could not load this doctor's appointments."));
+    } finally {
+      setLoading(false);
+    }
   }, [doctorId, filters]);
 
-  const handleFilterChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
+  useEffect(() => {
+    loadAppointments();
+  }, [loadAppointments]);
+
+  const selectedDoctor = useMemo(
+    () => doctors.find((doctor) => doctor._id === doctorId),
+    [doctors, doctorId]
+  );
+
+  const handleDoctorChange = (event) => {
+    const value = event.target.value;
+    setDoctorId(value);
+    if (value) setSearchParams({ doctor: value });
+    else setSearchParams({});
+  };
+
+  const handleFilterChange = (event) => {
+    const { name, value } = event.target;
+    setFilters((current) => ({ ...current, [name]: value }));
   };
 
   return (
-    <Box
-      sx={{
-        maxWidth: '900px',
-        mx: 'auto',
-        width: '100%',
-        px: { xs: 2, sm: 3, md: 4 },
-        py: { xs: 4, md: 6 },
-      }}
-    >
-      <Typography
-        variant="h3"
-        sx={{
-          fontSize: { xs: '1.5rem', sm: '1.8rem', md: '2.5rem' },
-          fontWeight: 700,
-          color: '#005C97',
-          lineHeight: 1.3,
-          letterSpacing: '-0.5px',
-          mb: 3,
-        }}
-        aria-label="Doctor Appointments"
-      >
-        Doctor Appointments
-      </Typography>
-      <Box
-        sx={{
-          backgroundColor: '#fff',
-          borderRadius: '12px',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-          p: { xs: 2, md: 3 },
-          mb: 3,
-        }}
-      >
-        <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 2 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Select
-              fullWidth
-              value={doctorId}
-              onChange={(e) => setDoctorId(e.target.value)}
-              displayEmpty
-              sx={{
-                borderRadius: '8px',
-                '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#1A3C5A',
-                },
-                '&:hover .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#00ACC1',
-                },
-                '& .MuiSelect-select': {
-                  fontSize: { xs: '0.85rem', md: '1rem' },
-                  color: '#1A3C5A',
-                },
-              }}
-              aria-label="Select doctor"
-            >
-              <MenuItem value="" disabled>
-                Select a Doctor
-              </MenuItem>
-              {doctors.map((doctor) => (
-                <MenuItem key={doctor._id} value={doctor._id}>
-                  {doctor.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Select
-              fullWidth
-              name="status"
-              value={filters.status}
-              onChange={handleFilterChange}
-              displayEmpty
-              sx={{
-                borderRadius: '8px',
-                '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#1A3C5A',
-                },
-                '&:hover .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#00ACC1',
-                },
-                '& .MuiSelect-select': {
-                  fontSize: { xs: '0.85rem', md: '1rem' },
-                  color: '#1A3C5A',
-                },
-              }}
-              aria-label="Select status"
-            >
-              <MenuItem value="">All Statuses</MenuItem>
-              {statusOptions.map((status) => (
-                <MenuItem key={status} value={status}>
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
-                </MenuItem>
-              ))}
-            </Select>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              type="date"
-              name="from"
-              label="From Date"
-              value={filters.from}
-              onChange={handleFilterChange}
-              InputLabelProps={{ shrink: true }}
-              variant="outlined"
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '8px',
-                  '& fieldset': { borderColor: '#1A3C5A' },
-                  '&:hover fieldset': { borderColor: '#00ACC1' },
-                },
-                '& .MuiInputLabel-root': {
-                  color: '#1A3C5A',
-                  fontSize: { xs: '0.85rem', md: '1rem' },
-                },
-              }}
-              aria-label="Select start date"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              type="date"
-              name="to"
-              label="To Date"
-              value={filters.to}
-              onChange={handleFilterChange}
-              InputLabelProps={{ shrink: true }}
-              variant="outlined"
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '8px',
-                  '& fieldset': { borderColor: '#1A3C5A' },
-                  '&:hover fieldset': { borderColor: '#00ACC1' },
-                },
-                '& .MuiInputLabel-root': {
-                  color: '#1A3C5A',
-                  fontSize: { xs: '0.85rem', md: '1rem' },
-                },
-              }}
-              aria-label="Select end date"
-            />
-          </Grid>
-        </Grid>
+    <Box>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h5" sx={{ fontWeight: 700, color: '#1A3C5A' }}>
+          Doctor appointments
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Review one doctor's schedule and filter by status or date.
+        </Typography>
       </Box>
-      <Box
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+
+      <Paper
+        elevation={0}
         sx={{
-          height: 400,
-          width: '100%',
-          backgroundColor: '#fff',
-          borderRadius: '12px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-          '& .MuiDataGrid-root': {
-            border: 'none',
-            '& .MuiDataGrid-cell': {
-              color: '#1A3C5A',
-              fontSize: { xs: '0.8rem', md: '0.9rem' },
-            },
-            '& .MuiDataGrid-columnHeaderTitle': {
-              color: '#1A3C5A',
-              fontWeight: 600,
-              fontSize: { xs: '0.85rem', md: '1rem' },
-            },
-            '& .MuiDataGrid-row:hover': {
-              backgroundColor: '#f0f4f8',
-            },
-          },
+          p: { xs: 2, md: 2.5 },
+          mb: 3,
+          borderRadius: '16px',
+          border: '1px solid #E6EEF5',
         }}
       >
-        <DataGrid
-          rows={appointments}
-          columns={[
-            ...columns,
-            {
-              field: 'actions',
-              headerName: 'Actions',
-              width: 150,
-              renderCell: (params) => (
-                <Button
-                  variant="contained"
-                  onClick={() =>
-                    navigate(`/doctor-dashboard/appointment/${params.row.id}`)
-                  }
-                  sx={{
-                    backgroundColor: '#00ACC1',
-                    color: '#fff',
-                    fontSize: { xs: '0.75rem', md: '0.85rem' },
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    px: 2,
-                    py: 0.5,
-                    borderRadius: '8px',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                    '&:hover': {
-                      backgroundColor: '#0097A7',
-                      transform: 'translateY(-2px)',
-                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-                    },
-                  }}
-                  aria-label={`View details for appointment ${params.row.id}`}
-                >
-                  Details
-                </Button>
-              ),
-            },
-          ]}
-          pageSizeOptions={[5, 10, 20]}
-          initialState={{
-            pagination: {
-              paginationModel: { pageSize: 5 },
-            },
-          }}
-        />
-      </Box>
+        {loadingDoctors ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <CircularProgress size={22} />
+            <Typography color="text.secondary">Loading doctors…</Typography>
+          </Box>
+        ) : doctors.length === 0 ? (
+          <Alert severity="info">No doctors are registered yet.</Alert>
+        ) : (
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={4}>
+              <Select
+                fullWidth
+                size="small"
+                value={doctorId}
+                onChange={handleDoctorChange}
+                displayEmpty
+                inputProps={{ 'aria-label': 'Select doctor' }}
+                sx={{ backgroundColor: '#fff' }}
+              >
+                {doctors.map((doctor) => (
+                  <MenuItem key={doctor._id} value={doctor._id}>
+                    {doctor.name}
+                    {doctor.specialty ? ` · ${doctor.specialty}` : ''}
+                  </MenuItem>
+                ))}
+              </Select>
+            </Grid>
+            <Grid item xs={12} sm={4} md={2}>
+              <Select
+                fullWidth
+                size="small"
+                name="status"
+                value={filters.status}
+                onChange={handleFilterChange}
+                displayEmpty
+                inputProps={{ 'aria-label': 'Filter by status' }}
+                sx={{ backgroundColor: '#fff' }}
+              >
+                <MenuItem value="">All statuses</MenuItem>
+                {Object.entries(STATUS_STYLES).map(([value, meta]) => (
+                  <MenuItem key={value} value={value}>
+                    {meta.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </Grid>
+            <Grid item xs={12} sm={4} md={3}>
+              <TextField
+                fullWidth
+                size="small"
+                type="date"
+                name="from"
+                label="From"
+                value={filters.from}
+                onChange={handleFilterChange}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4} md={3}>
+              <TextField
+                fullWidth
+                size="small"
+                type="date"
+                name="to"
+                label="To"
+                value={filters.to}
+                onChange={handleFilterChange}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+          </Grid>
+        )}
+      </Paper>
+
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
+          <CircularProgress />
+        </Box>
+      ) : appointments.length === 0 ? (
+        <Paper
+          elevation={0}
+          sx={{ p: 5, textAlign: 'center', borderRadius: '16px', border: '1px solid #E6EEF5' }}
+        >
+          <Typography variant="h6" sx={{ color: '#1A3C5A', mb: 1 }}>
+            No appointments found
+          </Typography>
+          <Typography color="text.secondary">
+            {selectedDoctor
+              ? `${selectedDoctor.name} has no appointments matching these filters.`
+              : 'Choose a doctor to see their appointments.'}
+          </Typography>
+        </Paper>
+      ) : (
+        <TableContainer
+          component={Paper}
+          elevation={0}
+          sx={{ borderRadius: '16px', border: '1px solid #E6EEF5', overflowX: 'auto' }}
+        >
+          <Table sx={{ minWidth: 720 }} aria-label="Doctor appointments">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700, color: '#1A3C5A' }}>Patient</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: '#1A3C5A' }}>When</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: '#1A3C5A' }}>Reason</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: '#1A3C5A' }}>Status</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, color: '#1A3C5A' }}>
+                  Actions
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {appointments.map((appointment) => {
+                const meta = STATUS_STYLES[appointment.status] || {
+                  label: appointment.status,
+                  color: 'default',
+                };
+                return (
+                  <TableRow key={appointment._id} hover>
+                    <TableCell>
+                      <Typography sx={{ fontWeight: 600, color: '#1A3C5A' }}>
+                        {appointment.patientInfo?.name || 'Patient'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {appointment.patientInfo?.email || 'No email'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ color: '#1A3C5A' }}>
+                        {formatDate(appointment.date)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {appointment.startTime}
+                        {appointment.endTime ? ` – ${appointment.endTime}` : ''}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 240 }}>
+                      <Typography variant="body2" color="text.secondary" noWrap>
+                        {appointment.reason || 'Not specified'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip size="small" label={meta.label} color={meta.color} />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Button
+                        component={Link}
+                        to={`/admin-dashboard/appointment/${appointment._id}`}
+                        size="small"
+                        variant="outlined"
+                        startIcon={<VisibilityIcon />}
+                        sx={{ textTransform: 'none' }}
+                      >
+                        Details
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
     </Box>
   );
 }

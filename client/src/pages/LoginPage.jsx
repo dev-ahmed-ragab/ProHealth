@@ -1,227 +1,171 @@
 import { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  IconButton,
+  InputAdornment,
+  Paper,
+  TextField,
+  Typography,
+} from '@mui/material';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useAuth } from '../context/AuthContext';
-import { TextField, Button, Container, Typography, Box } from '@mui/material';
-import { Link } from 'react-router-dom';
+
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function LoginPage() {
+  const { login } = useAuth();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const { login } = useAuth();
+  const [notice] = useState(location.state?.message || '');
+  const [submitting, setSubmitting] = useState(false);
 
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setError('');
-    setEmailError('');
 
-    if (!email) {
-      setEmailError('Email is required');
-      return;
-    }
-    if (!validateEmail(email)) {
-      setEmailError('Please enter a valid email address');
+    if (!emailPattern.test(email.trim())) {
+      setError('Please enter a valid email address.');
       return;
     }
     if (!password) {
-      setError('Password is required');
+      setError('Please enter your password.');
       return;
     }
 
+    setSubmitting(true);
     try {
-      await login(email, password);
+      await login(email, password, location.state?.from);
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <Box
       sx={{
-        width: '100vw',
-        minHeight: '100vh',
-        background: 'linear-gradient(145deg, #ffffff, #f0f4f8)',
+        minHeight: 'calc(100vh - 64px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        py: { xs: 6, md: 8 },
+        pt: { xs: 11, md: 12 },
+        pb: { xs: 6, md: 8 },
+        px: 2,
       }}
     >
-      <Container maxWidth="sm" sx={{ maxWidth: '800px', mx: 'auto' }}>
-        <Box
-          sx={{
-            p: { xs: 3, md: 4 },
-            backgroundColor: '#fff',
-            borderRadius: '12px',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-          role="form"
-          aria-label="Login Form"
+      <Paper
+        elevation={0}
+        sx={{
+          width: '100%',
+          maxWidth: 460,
+          p: { xs: 3, md: 4.5 },
+          borderRadius: '16px',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.08)',
+        }}
+      >
+        <Typography
+          variant="h4"
+          component="h1"
+          sx={{ fontWeight: 700, color: '#1A3C5A', mb: 0.5 }}
         >
-          <Typography
-            variant="h3"
+          Welcome back
+        </Typography>
+        <Typography color="text.secondary" sx={{ mb: 3 }}>
+          Sign in to manage your appointments.
+        </Typography>
+
+        {notice && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            {notice}
+          </Alert>
+        )}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+            {error}
+          </Alert>
+        )}
+
+        <Box component="form" onSubmit={handleSubmit} noValidate>
+          <TextField
+            label="Email"
+            type="email"
+            fullWidth
+            margin="normal"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+            required
+          />
+          <TextField
+            label="Password"
+            type={showPassword ? 'text' : 'password'}
+            fullWidth
+            margin="normal"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+            required
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    onClick={() => setShowPassword((value) => !value)}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+
+          <Box sx={{ textAlign: 'right', mt: 1 }}>
+            <Button
+              component={Link}
+              to="/forgot-password"
+              size="small"
+              sx={{ textTransform: 'none' }}
+            >
+              Forgot password?
+            </Button>
+          </Box>
+
+          <Button
+            type="submit"
+            variant="contained"
+            fullWidth
+            size="large"
+            disabled={submitting}
             sx={{
-              fontSize: { xs: '1.8rem', sm: '2.2rem', md: '3rem' },
-              fontWeight: 700,
-              color: '#005C97',
-              mb: 2,
-              lineHeight: 1.3,
-              letterSpacing: '-0.5px',
+              mt: 2,
+              py: 1.3,
+              backgroundColor: '#00ACC1',
+              fontWeight: 600,
+              textTransform: 'none',
+              '&:hover': { backgroundColor: '#0097A7' },
             }}
           >
-            Login
-          </Typography>
-          {error && (
-            <Typography
-              sx={{
-                fontSize: { xs: '0.95rem', sm: '1rem', md: '1.2rem' },
-                color: '#d32f2f',
-                mb: 2,
-                lineHeight: 1.6,
-              }}
-            >
-              {error}
-            </Typography>
-          )}
-          <Box
-            component="form"
-            onSubmit={handleSubmit}
-            sx={{ mt: 2, width: '100%' }}
-          >
-            <TextField
-              label="Email"
-              type="email"
-              fullWidth
-              margin="normal"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              variant="outlined"
-              error={!!emailError}
-              helperText={emailError}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '8px',
-                  '& fieldset': { borderColor: '#1A3C5A' },
-                  '&:hover fieldset': { borderColor: '#00ACC1' },
-                },
-                '& .MuiInputLabel-root': { color: '#1A3C5A' },
-              }}
-              aria-label="Email Address"
-            />
-            <TextField
-              label="Password"
-              type="password"
-              fullWidth
-              margin="normal"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              variant="outlined"
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '8px',
-                  '& fieldset': { borderColor: '#1A3C5A' },
-                  '&:hover fieldset': { borderColor: '#00ACC1' },
-                },
-                '& .MuiInputLabel-root': { color: '#1A3C5A' },
-              }}
-              aria-label="Password"
-            />
-            <Button
-              type="submit"
-              variant="contained"
-              fullWidth
-              sx={{
-                mt: 3,
-                mb: 2,
-                backgroundColor: '#00ACC1',
-                color: '#fff',
-                fontSize: { xs: '0.9rem', md: '1rem' },
-                fontWeight: 600,
-                px: 3,
-                py: 1.5,
-                borderRadius: '8px',
-                textTransform: 'none',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                '&:hover': {
-                  backgroundColor: '#0097A7',
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-                },
-              }}
-              aria-label="Login"
-            >
-              Login
-            </Button>
-            <Typography
-              variant="body2"
-              sx={{
-                fontSize: '0.9rem',
-                color: '#4A6B8A',
-                lineHeight: 1.5,
-                textAlign: 'center',
-              }}
-            >
-              Don’t have an account?{' '}
-              <Button
-                component={Link}
-                to="/register"
-                sx={{
-                  color: '#1A3C5A',
-                  fontSize: { xs: '0.9rem', md: '1rem' },
-                  fontWeight: 600,
-                  textTransform: 'none',
-                  '&:hover': {
-                    color: '#00ACC1',
-                    backgroundColor: 'transparent',
-                  },
-                }}
-                aria-label="Register"
-              >
-                Register
-              </Button>
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                fontSize: '0.9rem',
-                color: '#4A6B8A',
-                lineHeight: 1.5,
-                textAlign: 'center',
-                mt: 1,
-              }}
-            >
-              <Button
-                component={Link}
-                to="/forgot-password"
-                sx={{
-                  color: '#1A3C5A',
-                  fontSize: { xs: '0.9rem', md: '1rem' },
-                  fontWeight: 600,
-                  textTransform: 'none',
-                  '&:hover': {
-                    color: '#00ACC1',
-                    backgroundColor: 'transparent',
-                  },
-                }}
-                aria-label="Forgot Password"
-              >
-                Forgot password?
-              </Button>
-            </Typography>
-          </Box>
+            {submitting ? <CircularProgress size={24} color="inherit" /> : 'Sign in'}
+          </Button>
         </Box>
-      </Container>
+
+        <Typography variant="body2" sx={{ mt: 3, textAlign: 'center', color: '#4A6B8A' }}>
+          New to ProHealth?{' '}
+          <Button component={Link} to="/register" size="small" sx={{ textTransform: 'none' }}>
+            Create an account
+          </Button>
+        </Typography>
+      </Paper>
     </Box>
   );
 }

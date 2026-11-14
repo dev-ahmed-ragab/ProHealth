@@ -1,358 +1,399 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
+  Alert,
   Box,
-  Typography,
   Button,
-  Select,
+  Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
   MenuItem,
-  Container,
+  Paper,
+  Select,
+  Stack,
+  TextField,
+  Typography,
 } from '@mui/material';
-import axios from 'axios';
-import { toast } from 'react-toastify';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import PersonIcon from '@mui/icons-material/Person';
+import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
+import api, { getErrorMessage } from '../api';
 
-const statusOptions = ['pending', 'confirmed', 'cancelled', 'completed'];
+const STATUS_META = {
+  pending: { label: 'Pending', color: 'warning' },
+  confirmed: { label: 'Confirmed', color: 'success' },
+  completed: { label: 'Completed', color: 'info' },
+  cancelled: { label: 'Cancelled', color: 'default' },
+};
+
+const EDITABLE_STATUSES = ['pending', 'confirmed', 'completed'];
+
+const formatDate = (value) => {
+  if (!value) return 'No date';
+  return new Date(value).toLocaleDateString(undefined, {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+};
 
 function AppointmentDetails() {
   const { id } = useParams();
-  const [appointment, setAppointment] = useState(null);
-  const [status, setStatus] = useState('');
   const navigate = useNavigate();
 
+  const [appointment, setAppointment] = useState(null);
+  const [statusDraft, setStatusDraft] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [savingStatus, setSavingStatus] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelling, setCancelling] = useState(false);
+
   useEffect(() => {
-    const fetchAppointment = async () => {
+    let cancelled = false;
+
+    const load = async () => {
+      setLoading(true);
       try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`/api/appointments/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setAppointment(response.data.data);
-        setStatus(response.data.data.status);
-      } catch (error) {
-        toast.error('Error fetching appointment details');
+        const response = await api.get(`/api/appointments/${id}`);
+        if (cancelled) return;
+        const data = response.data?.data;
+        setAppointment(data);
+        setStatusDraft(data?.status || 'pending');
+        setLoadError('');
+      } catch (err) {
+        if (!cancelled) {
+          setLoadError(getErrorMessage(err, 'Could not load this appointment.'));
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
-    fetchAppointment();
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   const handleStatusChange = async () => {
-    if (!status) {
-      toast.error('Please select a status');
-      return;
-    }
+    if (!statusDraft) return;
+    setSavingStatus(true);
+    setError('');
+    setSuccess('');
     try {
-      const token = localStorage.getItem('token');
-      await axios.patch(
-        `/api/appointments/${id}/status`,
-        { status },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      toast.success('Status updated successfully');
-      const response = await axios.get(`/api/appointments/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await api.patch(`/api/appointments/${id}/status`, {
+        status: statusDraft,
       });
-      setAppointment(response.data.data);
-    } catch (error) {
-      toast.error('Error updating status');
+      if (response.data?.data) {
+        setAppointment(response.data.data);
+        setStatusDraft(response.data.data.status);
+      }
+      setSuccess('Appointment status updated.');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Could not update the appointment status.'));
+    } finally {
+      setSavingStatus(false);
     }
   };
 
   const handleCancel = async () => {
-    const reason = prompt('Enter cancellation reason (optional):');
+    setCancelling(true);
+    setError('');
+    setSuccess('');
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        `/api/appointments/${id}/cancel`,
-        { cancellationReason: reason },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      toast.success('Appointment cancelled successfully');
-      navigate('/admin-dashboard/appointments');
-    } catch (error) {
-      toast.error('Error cancelling appointment');
+      const response = await api.post(`/api/appointments/${id}/cancel`, {
+        cancellationReason: cancelReason.trim() || undefined,
+      });
+      if (response.data?.data) {
+        setAppointment(response.data.data);
+        setStatusDraft(response.data.data.status);
+      }
+      setCancelOpen(false);
+      setCancelReason('');
+      setSuccess('Appointment cancelled. The slot is available again.');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Could not cancel the appointment.'));
+    } finally {
+      setCancelling(false);
     }
   };
 
-  if (!appointment) {
+  if (loading) {
     return (
-      <Container
-        maxWidth="sm"
-        sx={{ maxWidth: '800px', mx: 'auto', py: { xs: 6, md: 8 } }}
-      >
-        <Typography
-          variant="body1"
-          sx={{
-            fontSize: { xs: '0.95rem', sm: '1rem', md: '1.2rem' },
-            color: '#4A6B8A',
-            textAlign: 'center',
-          }}
-        >
-          Loading...
-        </Typography>
-      </Container>
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
+        <CircularProgress />
+      </Box>
     );
   }
 
+  if (loadError || !appointment) {
+    return (
+      <Box>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {loadError || 'Appointment not found.'}
+        </Alert>
+        <Button
+          component={Link}
+          to="/admin-dashboard/appointments"
+          startIcon={<ArrowBackIcon />}
+          sx={{ textTransform: 'none' }}
+        >
+          Back to appointments
+        </Button>
+      </Box>
+    );
+  }
+
+  const statusMeta = STATUS_META[appointment.status] || {
+    label: appointment.status,
+    color: 'default',
+  };
+  const isTerminal = ['completed', 'cancelled'].includes(appointment.status);
+
   return (
-    <Box
-      sx={{
-        width: '100vw',
-        minHeight: '100vh',
-        background: 'linear-gradient(145deg, #ffffff, #f0f4f8)',
-        py: { xs: 6, md: 8 },
-      }}
-    >
-      <Container maxWidth="sm" sx={{ maxWidth: '800px', mx: 'auto' }}>
+    <Box>
+      <Button
+        component={Link}
+        to="/admin-dashboard/appointments"
+        startIcon={<ArrowBackIcon />}
+        sx={{ textTransform: 'none', mb: 2 }}
+      >
+        Back to appointments
+      </Button>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+          {success}
+        </Alert>
+      )}
+
+      <Paper
+        elevation={0}
+        sx={{ p: { xs: 2.5, md: 3.5 }, borderRadius: '16px', border: '1px solid #E6EEF5' }}
+      >
         <Box
           sx={{
-            p: { xs: 3, md: 4 },
-            backgroundColor: '#fff',
-            borderRadius: '12px',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: 2,
+            flexWrap: 'wrap',
           }}
-          role="article"
-          aria-label="Appointment Details"
         >
-          <Typography
-            variant="h3"
-            sx={{
-              fontSize: { xs: '1.8rem', sm: '2.2rem', md: '3rem' },
-              fontWeight: 700,
-              color: '#005C97',
-              mb: 3,
-              lineHeight: 1.3,
-              letterSpacing: '-0.5px',
-            }}
-          >
-            Appointment Details
+          <Typography variant="h5" sx={{ fontWeight: 700, color: '#1A3C5A' }}>
+            Appointment details
           </Typography>
-          <Box sx={{ mb: 3 }}>
-            <Typography
-              variant="body1"
-              sx={{
-                fontSize: { xs: '0.95rem', sm: '1rem', md: '1.2rem' },
-                color: '#4A6B8A',
-                lineHeight: 1.6,
-                mb: 1,
-              }}
-            >
-              <strong>Appointment ID:</strong> {appointment._id}
+          <Chip label={statusMeta.label} color={statusMeta.color} />
+        </Box>
+
+        <Divider sx={{ my: 2.5 }} />
+
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+            gap: 2.5,
+          }}
+        >
+          <Box sx={{ display: 'flex', gap: 1.5 }}>
+            <PersonIcon sx={{ color: '#00ACC1' }} />
+            <Box>
+              <Typography variant="caption" sx={{ color: '#78909C', textTransform: 'uppercase' }}>
+                Patient
+              </Typography>
+              <Typography sx={{ color: '#1A3C5A', fontWeight: 600 }}>
+                {appointment.patientInfo?.name || 'Patient'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {appointment.patientInfo?.email || 'No email'}
+              </Typography>
+              {appointment.patientInfo?.phone && (
+                <Typography variant="body2" color="text.secondary">
+                  {appointment.patientInfo.phone}
+                </Typography>
+              )}
+            </Box>
+          </Box>
+
+          <Box sx={{ display: 'flex', gap: 1.5 }}>
+            <MedicalServicesIcon sx={{ color: '#00ACC1' }} />
+            <Box>
+              <Typography variant="caption" sx={{ color: '#78909C', textTransform: 'uppercase' }}>
+                Doctor
+              </Typography>
+              <Typography sx={{ color: '#1A3C5A', fontWeight: 600 }}>
+                Dr. {appointment.doctorInfo?.name || 'Doctor'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {appointment.doctorInfo?.specialty || 'General'}
+              </Typography>
+            </Box>
+          </Box>
+
+          <Box>
+            <Typography variant="caption" sx={{ color: '#78909C', textTransform: 'uppercase' }}>
+              Date
             </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                fontSize: { xs: '0.95rem', sm: '1rem', md: '1.2rem' },
-                color: '#4A6B8A',
-                lineHeight: 1.6,
-                mb: 1,
-              }}
-            >
-              <strong>Patient Name:</strong>{' '}
-              {appointment.patientInfo?.name || 'Unknown'}
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                fontSize: { xs: '0.95rem', sm: '1rem', md: '1.2rem' },
-                color: '#4A6B8A',
-                lineHeight: 1.6,
-                mb: 1,
-              }}
-            >
-              <strong>Doctor Name:</strong>{' '}
-              {appointment.doctorInfo?.name || 'Unknown'}
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                fontSize: { xs: '0.95rem', sm: '1rem', md: '1.2rem' },
-                color: '#4A6B8A',
-                lineHeight: 1.6,
-                mb: 1,
-              }}
-            >
-              <strong>Date:</strong>{' '}
-              {new Date(appointment.date).toLocaleDateString('en-US')}
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                fontSize: { xs: '0.95rem', sm: '1rem', md: '1.2rem' },
-                color: '#4A6B8A',
-                lineHeight: 1.6,
-                mb: 1,
-              }}
-            >
-              <strong>Start Time:</strong> {appointment.startTime}
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                fontSize: { xs: '0.95rem', sm: '1rem', md: '1.2rem' },
-                color: '#4A6B8A',
-                lineHeight: 1.6,
-                mb: 1,
-              }}
-            >
-              <strong>End Time:</strong> {appointment.endTime}
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                fontSize: { xs: '0.95rem', sm: '1rem', md: '1.2rem' },
-                color: '#4A6B8A',
-                lineHeight: 1.6,
-                mb: 1,
-              }}
-            >
-              <strong>Reason:</strong> {appointment.reason || 'None'}
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                fontSize: { xs: '0.95rem', sm: '1rem', md: '1.2rem' },
-                color: '#4A6B8A',
-                lineHeight: 1.6,
-                mb: 1,
-              }}
-            >
-              <strong>Notes:</strong> {appointment.notes || 'None'}
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                fontSize: { xs: '0.95rem', sm: '1rem', md: '1.2rem' },
-                color: '#4A6B8A',
-                lineHeight: 1.6,
-                mb: 1,
-              }}
-            >
-              <strong>Status:</strong> {appointment.status}
+            <Typography sx={{ color: '#1A3C5A', fontWeight: 600 }}>
+              {formatDate(appointment.date)}
             </Typography>
           </Box>
-          <Box
-            sx={{
-              mb: 3,
-              display: 'flex',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: 2,
-            }}
+
+          <Box>
+            <Typography variant="caption" sx={{ color: '#78909C', textTransform: 'uppercase' }}>
+              Time
+            </Typography>
+            <Typography sx={{ color: '#1A3C5A', fontWeight: 600 }}>
+              {appointment.startTime}
+              {appointment.endTime ? ` – ${appointment.endTime}` : ''}
+            </Typography>
+          </Box>
+
+          <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
+            <Typography variant="caption" sx={{ color: '#78909C', textTransform: 'uppercase' }}>
+              Reason for visit
+            </Typography>
+            <Typography sx={{ color: '#1A3C5A', whiteSpace: 'pre-line' }}>
+              {appointment.reason || 'No reason provided.'}
+            </Typography>
+          </Box>
+
+          {appointment.notes && (
+            <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
+              <Typography
+                variant="caption"
+                sx={{ color: '#78909C', textTransform: 'uppercase' }}
+              >
+                Notes
+              </Typography>
+              <Typography sx={{ color: '#1A3C5A', whiteSpace: 'pre-line' }}>
+                {appointment.notes}
+              </Typography>
+            </Box>
+          )}
+
+          {appointment.cancellationReason && (
+            <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
+              <Typography
+                variant="caption"
+                sx={{ color: '#78909C', textTransform: 'uppercase' }}
+              >
+                Cancellation reason
+              </Typography>
+              <Typography sx={{ color: '#1A3C5A', whiteSpace: 'pre-line' }}>
+                {appointment.cancellationReason}
+              </Typography>
+            </Box>
+          )}
+        </Box>
+
+        <Divider sx={{ my: 2.5 }} />
+
+        {isTerminal ? (
+          <Alert severity="info">
+            This appointment is {appointment.status} and can no longer be changed.
+          </Alert>
+        ) : (
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
+            alignItems={{ xs: 'stretch', sm: 'center' }}
           >
             <Select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              sx={{
-                minWidth: 150,
-                borderRadius: '8px',
-                '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#1A3C5A',
-                },
-                '&:hover .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#00ACC1',
-                },
-                '& .MuiSelect-select': {
-                  fontSize: { xs: '0.9rem', md: '1rem' },
-                  color: '#1A3C5A',
-                },
-              }}
-              aria-label="Select Appointment Status"
+              size="small"
+              value={statusDraft}
+              onChange={(event) => setStatusDraft(event.target.value)}
+              inputProps={{ 'aria-label': 'Appointment status' }}
+              sx={{ minWidth: 170, backgroundColor: '#fff' }}
             >
-              {statusOptions.map((option) => (
-                <MenuItem
-                  key={option}
-                  value={option}
-                  sx={{
-                    fontSize: { xs: '0.9rem', md: '1rem' },
-                    color: '#1A3C5A',
-                  }}
-                >
-                  {option.charAt(0).toUpperCase() + option.slice(1)}
+              {EDITABLE_STATUSES.map((status) => (
+                <MenuItem key={status} value={status}>
+                  {STATUS_META[status].label}
                 </MenuItem>
               ))}
             </Select>
             <Button
               variant="contained"
               onClick={handleStatusChange}
+              disabled={savingStatus || statusDraft === appointment.status}
               sx={{
                 backgroundColor: '#00ACC1',
-                color: '#fff',
-                fontSize: { xs: '0.9rem', md: '1rem' },
-                fontWeight: 600,
-                px: 3,
-                py: 1.5,
-                borderRadius: '8px',
                 textTransform: 'none',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                '&:hover': {
-                  backgroundColor: '#0097A7',
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-                },
+                '&:hover': { backgroundColor: '#0097A7' },
               }}
-              aria-label="Update Status"
             >
-              Update Status
-            </Button>
-          </Box>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-            <Button
-              variant="contained"
-              onClick={handleCancel}
-              disabled={['cancelled', 'completed'].includes(appointment.status)}
-              sx={{
-                backgroundColor: '#d32f2f',
-                color: '#fff',
-                fontSize: { xs: '0.9rem', md: '1rem' },
-                fontWeight: 600,
-                px: 3,
-                py: 1.5,
-                borderRadius: '8px',
-                textTransform: 'none',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                '&:hover': {
-                  backgroundColor: '#b71c1c',
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-                },
-                '&.Mui-disabled': {
-                  backgroundColor: 'rgba(0, 0, 0, 0.12)',
-                  color: 'rgba(0, 0, 0, 0.26)',
-                },
-              }}
-              aria-label="Cancel Appointment"
-            >
-              Cancel Appointment
+              {savingStatus ? 'Saving…' : 'Save status'}
             </Button>
             <Button
-              variant="contained"
-              onClick={() => navigate('/admin-dashboard/appointments')}
-              sx={{
-                backgroundColor: '#4A6B8A',
-                color: '#fff',
-                fontSize: { xs: '0.9rem', md: '1rem' },
-                fontWeight: 600,
-                px: 3,
-                py: 1.5,
-                borderRadius: '8px',
-                textTransform: 'none',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                '&:hover': {
-                  backgroundColor: '#3a536f',
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-                },
-              }}
-              aria-label="Back to Appointments"
+              color="error"
+              variant="outlined"
+              onClick={() => setCancelOpen(true)}
+              sx={{ textTransform: 'none', ml: { sm: 'auto' } }}
             >
-              Back
+              Cancel appointment
             </Button>
-          </Box>
-        </Box>
-      </Container>
+          </Stack>
+        )}
+      </Paper>
+
+      <Box sx={{ mt: 2 }}>
+        <Button
+          onClick={() => navigate('/admin-dashboard/appointments')}
+          sx={{ textTransform: 'none' }}
+        >
+          Back to all appointments
+        </Button>
+      </Box>
+
+      <Dialog
+        open={cancelOpen}
+        onClose={() => setCancelOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Cancel appointment</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            This frees the {appointment.startTime} slot on {formatDate(appointment.date)}{' '}
+            for other patients.
+          </Typography>
+          <TextField
+            label="Reason (optional)"
+            fullWidth
+            multiline
+            minRows={2}
+            value={cancelReason}
+            onChange={(event) => setCancelReason(event.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCancelOpen(false)} disabled={cancelling}>
+            Keep appointment
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={handleCancel}
+            disabled={cancelling}
+          >
+            {cancelling ? 'Cancelling…' : 'Cancel appointment'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

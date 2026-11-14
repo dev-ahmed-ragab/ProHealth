@@ -1,314 +1,443 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
-  Container,
-  Typography,
+  Alert,
+  Avatar,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  InputAdornment,
+  MenuItem,
+  Paper,
+  Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
-  MenuItem,
-  IconButton,
-  Box,
+  Tooltip,
+  Typography,
 } from '@mui/material';
-import { Delete, Edit, Event } from '@mui/icons-material';
-import { Link } from 'react-router-dom';
-import axios from 'axios';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import PersonIcon from '@mui/icons-material/Person';
+import SearchIcon from '@mui/icons-material/Search';
+import api, { getErrorMessage, toList } from '../api';
+
+const ROLE_COLORS = {
+  admin: 'secondary',
+  doctor: 'info',
+  user: 'default',
+};
+
+const SPECIALTIES = [
+  { value: '', label: 'Not specified' },
+  { value: 'general', label: 'General' },
+  { value: 'cardiology', label: 'Cardiology' },
+  { value: 'neurology', label: 'Neurology' },
+  { value: 'pediatrics', label: 'Pediatrics' },
+  { value: 'orthopedics', label: 'Orthopedics' },
+  { value: 'dermatology', label: 'Dermatology' },
+];
+
+const EMPTY_FORM = { name: '', email: '', role: 'user', specialty: '' };
+
+const formatJoined = (value) => {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
 
 const UsersList = () => {
   const [users, setUsers] = useState([]);
-  const [open, setOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    role: 'user',
-    specialty: null,
-  });
-  const token = localStorage.getItem('token');
+  const [pagination, setPagination] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const loadUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = { limit: 200 };
+      if (search) params.search = search;
+      const response = await api.get('/api/users', { params });
+      setUsers(toList(response.data));
+      setPagination(response.data?.pagination || null);
+      setError('');
+    } catch (err) {
+      setUsers([]);
+      setError(getErrorMessage(err, 'Could not load users.'));
+    } finally {
+      setLoading(false);
+    }
+  }, [search]);
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const res = await axios.get(
-          'https://pro-health-backend.vercel.app/api/users',
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setUsers(res.data);
-      } catch (err) {
-        console.error('Error fetching users:', err);
-      }
-    };
-    fetchUsers();
-  }, [token]);
+    loadUsers();
+  }, [loadUsers]);
 
-  const handleOpen = (user) => {
-    setSelectedUser(user);
-    setFormData({
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      specialty: user.specialty || null,
+  const counts = useMemo(
+    () =>
+      users.reduce(
+        (acc, user) => {
+          acc[user.role] = (acc[user.role] || 0) + 1;
+          return acc;
+        },
+        { user: 0, doctor: 0, admin: 0 }
+      ),
+    [users]
+  );
+
+  const openEdit = (user) => {
+    setEditing(user);
+    setForm({
+      name: user.name || '',
+      email: user.email || '',
+      role: user.role || 'user',
+      specialty: user.specialty || '',
     });
-    setOpen(true);
+    setError('');
+    setSuccess('');
   };
 
-  const handleClose = () => {
-    setOpen(false);
-    setSelectedUser(null);
+  const closeEdit = () => {
+    if (saving) return;
+    setEditing(null);
+    setForm(EMPTY_FORM);
   };
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
   };
 
-  const handleUpdate = async () => {
+  const handleSave = async () => {
+    if (!editing) return;
+    if (!form.name.trim()) {
+      setError('Name cannot be empty.');
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) {
+      setError('Enter a valid email address.');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    setSuccess('');
     try {
-      await axios.put(
-        `https://pro-health-backend.vercel.app/api/users/${selectedUser._id}`,
-        formData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setUsers(
-        users.map((u) =>
-          u._id === selectedUser._id ? { ...u, ...formData } : u
-        )
-      );
-      handleClose();
+      const payload = {
+        name: form.name.trim(),
+        email: form.email.trim(),
+        role: form.role,
+      };
+      if (form.role === 'doctor') payload.specialty = form.specialty || null;
+
+      const response = await api.put(`/api/users/${editing._id}`, payload);
+      const updated = response.data?.user;
+      if (updated) {
+        setUsers((current) =>
+          current.map((user) => (user._id === updated._id ? { ...user, ...updated } : user))
+        );
+      }
+      setEditing(null);
+      setForm(EMPTY_FORM);
+      setSuccess(`${payload.name}'s account was updated.`);
     } catch (err) {
-      console.error('Error updating user:', err);
+      setError(getErrorMessage(err, 'Could not update this user.'));
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        await axios.delete(
-          `https://pro-health-backend.vercel.app/api/users/${id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setUsers(users.filter((u) => u._id !== id));
-      } catch (err) {
-        console.error('Error deleting user:', err);
-      }
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setError('');
+    setSuccess('');
+    try {
+      await api.delete(`/api/users/${deleteTarget._id}`);
+      setUsers((current) => current.filter((user) => user._id !== deleteTarget._id));
+      setDeleteTarget(null);
+      setSuccess(`${deleteTarget.name}'s account was removed.`);
+    } catch (err) {
+      setError(getErrorMessage(err, 'Could not delete this user.'));
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  const submitSearch = (event) => {
+    event.preventDefault();
+    setSearch(searchInput.trim());
   };
 
   return (
-    <Box
-      sx={{
-        width: '100%',
-        py: { xs: 6, md: 8 },
-        px: { xs: 2, sm: 3, md: 4 },
-        backgroundColor: '#fff',
-      }}
-    >
-      <Container>
-        <Typography
-          variant="h3"
-          component="h1"
-          gutterBottom
-          sx={{
-            fontSize: { xs: '1.8rem', sm: '2.2rem', md: '3rem' },
-            fontWeight: 700,
-            color: '#005C97',
-            mb: 4,
-            textAlign: 'center',
-          }}
-        >
-          User Management
+    <Box>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h5" sx={{ fontWeight: 700, color: '#1A3C5A' }}>
+          User management
         </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {pagination?.total ?? users.length} accounts · {counts.doctor} doctors ·{' '}
+          {counts.admin} admins
+        </Typography>
+      </Box>
 
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+          {success}
+        </Alert>
+      )}
+
+      <Box
+        component="form"
+        onSubmit={submitSearch}
+        sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3 }}
+      >
+        <TextField
+          size="small"
+          placeholder="Search by name or email"
+          value={searchInput}
+          onChange={(event) => setSearchInput(event.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" />
+              </InputAdornment>
+            ),
+          }}
+          sx={{ minWidth: { xs: '100%', sm: 300 }, backgroundColor: '#fff' }}
+        />
+        <Button type="submit" variant="outlined" sx={{ textTransform: 'none' }}>
+          Search
+        </Button>
+        {search && (
+          <Button
+            onClick={() => {
+              setSearchInput('');
+              setSearch('');
+            }}
+            sx={{ textTransform: 'none' }}
+          >
+            Clear
+          </Button>
+        )}
+      </Box>
+
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
+          <CircularProgress />
+        </Box>
+      ) : users.length === 0 ? (
+        <Paper
+          elevation={0}
+          sx={{ p: 5, textAlign: 'center', borderRadius: '16px', border: '1px solid #E6EEF5' }}
+        >
+          <Typography variant="h6" sx={{ color: '#1A3C5A', mb: 1 }}>
+            No users found
+          </Typography>
+          <Typography color="text.secondary">
+            {search ? 'Try a different search term.' : 'Registered accounts will appear here.'}
+          </Typography>
+        </Paper>
+      ) : (
         <TableContainer
           component={Paper}
-          sx={{
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-            borderRadius: '12px',
-            overflowX: 'auto',
-          }}
+          elevation={0}
+          sx={{ borderRadius: '16px', border: '1px solid #E6EEF5', overflowX: 'auto' }}
         >
-          <Table aria-label="simple table">
+          <Table sx={{ minWidth: 760 }} aria-label="Registered users">
             <TableHead>
               <TableRow>
-                <TableCell
-                  sx={{
-                    fontWeight: 600,
-                    color: '#1A3C5A',
-                    borderBottom: '2px solid #e0e0e0',
-                  }}
-                >
-                  Name
-                </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{
-                    fontWeight: 600,
-                    color: '#1A3C5A',
-                    borderBottom: '2px solid #e0e0e0',
-                  }}
-                >
-                  Email
-                </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{
-                    fontWeight: 600,
-                    color: '#1A3C5A',
-                    borderBottom: '2px solid #e0e0e0',
-                  }}
-                >
-                  Role
-                </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{
-                    fontWeight: 600,
-                    color: '#1A3C5A',
-                    borderBottom: '2px solid #e0e0e0',
-                  }}
-                >
-                  Specialty
-                </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{
-                    fontWeight: 600,
-                    color: '#1A3C5A',
-                    borderBottom: '2px solid #e0e0e0',
-                  }}
-                >
+                <TableCell sx={{ fontWeight: 700, color: '#1A3C5A' }}>Account</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: '#1A3C5A' }}>Role</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: '#1A3C5A' }}>Specialty</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: '#1A3C5A' }}>Joined</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, color: '#1A3C5A' }}>
                   Actions
                 </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {users.map((user) => (
-                <TableRow key={user._id}>
-                  <TableCell component="th" scope="row">
-                    {user.name}
+                <TableRow key={user._id} hover>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Avatar
+                        src={user.profilePicture || undefined}
+                        alt={user.name}
+                        sx={{ width: 36, height: 36, bgcolor: '#00ACC1', fontSize: '0.9rem' }}
+                      >
+                        {user.name?.charAt(0)?.toUpperCase() || <PersonIcon fontSize="small" />}
+                      </Avatar>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography sx={{ fontWeight: 600, color: '#1A3C5A' }} noWrap>
+                          {user.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" noWrap>
+                          {user.email}
+                        </Typography>
+                      </Box>
+                    </Box>
                   </TableCell>
-                  <TableCell align="right">{user.email}</TableCell>
-                  <TableCell align="right">{user.role}</TableCell>
-                  <TableCell align="right">
-                    {user.specialty || 'Not Specified'}
+                  <TableCell>
+                    <Chip
+                      size="small"
+                      label={user.role}
+                      color={ROLE_COLORS[user.role] || 'default'}
+                      sx={{ textTransform: 'capitalize' }}
+                    />
                   </TableCell>
+                  <TableCell sx={{ textTransform: 'capitalize' }}>
+                    {user.specialty || '—'}
+                  </TableCell>
+                  <TableCell>{formatJoined(user.createdAt)}</TableCell>
                   <TableCell align="right">
-                    <IconButton
-                      onClick={() => handleOpen(user)}
-                      aria-label={`Edit ${user.name}`}
-                    >
-                      <Edit />
-                    </IconButton>
-                    <IconButton
-                      onClick={() => handleDelete(user._id)}
-                      aria-label={`Delete ${user.name}`}
-                    >
-                      <Delete />
-                    </IconButton>
-                    <IconButton
-                      component={Link}
-                      to={`/admin-dashboard/appointment/${user._id}`}
-                      state={{ userId: user._id }}
-                      aria-label={`Schedule Appointment for ${user.name}`}
-                    >
-                      <Event />
-                    </IconButton>
+                    <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                      <Tooltip title="View profile">
+                        <IconButton
+                          component={Link}
+                          to={`/profile/${user._id}`}
+                          size="small"
+                          aria-label={`View ${user.name}'s profile`}
+                        >
+                          <PersonIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Edit account">
+                        <IconButton
+                          size="small"
+                          onClick={() => openEdit(user)}
+                          aria-label={`Edit ${user.name}`}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete account">
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => setDeleteTarget(user)}
+                          aria-label={`Delete ${user.name}`}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </TableContainer>
+      )}
 
-        <Dialog open={open} onClose={handleClose}>
-          <DialogTitle>Edit User</DialogTitle>
-          <DialogContent>
+      <Dialog open={Boolean(editing)} onClose={closeEdit} fullWidth maxWidth="sm">
+        <DialogTitle>Edit account</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Changes apply immediately. Changing a role to doctor unlocks that account's
+            dashboard.
+          </Typography>
+          <Stack spacing={2}>
+            <TextField label="Name" name="name" fullWidth value={form.name} onChange={handleChange} />
             <TextField
-              margin="dense"
-              name="name"
-              label="Name"
-              fullWidth
-              value={formData.name}
-              onChange={handleChange}
-              aria-label="Name"
-            />
-            <TextField
-              margin="dense"
-              name="email"
               label="Email"
+              name="email"
+              type="email"
               fullWidth
-              value={formData.email}
+              value={form.email}
               onChange={handleChange}
-              aria-label="Email"
             />
-            <TextField
-              margin="dense"
-              name="role"
-              label="Role"
-              select
-              fullWidth
-              value={formData.role}
-              onChange={handleChange}
-              aria-label="Select Role"
-            >
+            <TextField select label="Role" name="role" fullWidth value={form.role} onChange={handleChange}>
               <MenuItem value="user">User</MenuItem>
               <MenuItem value="doctor">Doctor</MenuItem>
               <MenuItem value="admin">Admin</MenuItem>
             </TextField>
-            {formData.role === 'doctor' && (
+            {form.role === 'doctor' && (
               <TextField
-                margin="dense"
-                name="specialty"
-                label="Specialty"
                 select
+                label="Specialty"
+                name="specialty"
                 fullWidth
-                value={formData.specialty || ''}
+                value={form.specialty}
                 onChange={handleChange}
-                aria-label="Select Specialty"
               >
-                <MenuItem value={null}>Not Specified</MenuItem>
-                <MenuItem value="general">General</MenuItem>
-                <MenuItem value="cardiology">Cardiology</MenuItem>
-                <MenuItem value="neurology">Neurology</MenuItem>
-                <MenuItem value="pediatrics">Pediatrics</MenuItem>
-                <MenuItem value="orthopedics">Orthopedics</MenuItem>
-                <MenuItem value="dermatology">Dermatology</MenuItem>
+                {SPECIALTIES.map((option) => (
+                  <MenuItem key={option.value || 'none'} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
               </TextField>
             )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleClose}>Cancel</Button>
-            <Button
-              onClick={handleUpdate}
-              variant="contained"
-              sx={{
-                backgroundColor: '#00ACC1',
-                color: '#fff',
-                textTransform: 'none',
-                '&:hover': {
-                  backgroundColor: '#0097A7',
-                },
-              }}
-            >
-              Save
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </Container>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeEdit} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={saving}
+            sx={{
+              backgroundColor: '#00ACC1',
+              textTransform: 'none',
+              '&:hover': { backgroundColor: '#0097A7' },
+            }}
+          >
+            {saving ? 'Saving…' : 'Save changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} fullWidth maxWidth="sm">
+        <DialogTitle>Delete account</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            {deleteTarget
+              ? `Remove ${deleteTarget.name} (${deleteTarget.email})? Their appointments stay in the system but the account can no longer sign in.`
+              : ''}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteTarget(null)} disabled={deleting}>
+            Keep account
+          </Button>
+          <Button color="error" variant="contained" onClick={handleDelete} disabled={deleting}>
+            {deleting ? 'Deleting…' : 'Delete account'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

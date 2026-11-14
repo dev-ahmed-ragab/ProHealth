@@ -24,7 +24,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import NotFoundPage from './pages/NotFoundPage';
 import Navbar from './components/layer/Navbar';
 import Footer from './components/layer/Footer';
-import { Container, Box } from '@mui/material';
+import { Box } from '@mui/material';
 import Services from './pages/Services';
 import Contact from './pages/Contact';
 
@@ -47,7 +47,7 @@ function App() {
           sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
         >
           <Navbar />
-          <Container maxWidth="xl" sx={{ flexGrow: 1, px: { xs: 0, sm: 2 } }}>
+          <Box component="main" sx={{ flexGrow: 1, width: '100%', overflowX: 'hidden' }}>
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<HomePage />} />
@@ -100,7 +100,7 @@ function App() {
               <Route path="/services" element={<Navigate to="/service" replace />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
-          </Container>
+          </Box>
           <Footer />
         </Box>
       </AuthProvider>

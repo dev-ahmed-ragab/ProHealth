@@ -1,81 +1,57 @@
-<<<<<<< HEAD
+# ProHealth — Client
 
-# ProHealth
+React front end for the ProHealth clinic platform. Patients can find doctors,
+book appointments, and manage their visits; doctors and admins get dedicated
+dashboards.
 
--clone
-clone ProHealth
+## Tech stack
 
-=======
+- React 18 + Create React App
+- Material UI v7 and MUI X Data Grid
+- React Router v6
+- Axios (centralised in `src/api.js`)
+- Chart.js for statistics
 
-# Getting Started with Create React App
+## Getting started
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+```bash
+cd client
+npm install
+cp .env.example .env
+npm start
+```
 
-## Available Scripts
+The app opens at [http://localhost:3000](http://localhost:3000).
 
-In the project directory, you can run:
+### Environment variables
 
-### `npm start`
+| Variable | Description | Default |
+| --- | --- | --- |
+| `REACT_APP_API_URL` | Base URL of the API server | `https://pro-health-backend.vercel.app` |
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Only variables prefixed with `REACT_APP_` are exposed to the browser.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Scripts
 
-### `npm test`
+- `npm start` — development server with hot reload
+- `npm run build` — production build in `build/`
+- `npm test` — interactive test runner
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Project structure
 
-### `npm run build`
+```
+src/
+  api.js                  Axios instance, error helpers, response normalisers
+  App.js                  Routes and layout
+  context/AuthContext.js  Session, login/register, profile and password actions
+  components/             Shared layout, home, and service sections
+  pages/                  Patient pages and doctor/admin dashboards
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Auth notes
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
-
-> > > > > > > 956a14d (Initial commit)
+- Login returns `{ token, user }`; the user object is stored as-is.
+- Email verification is optional and does not block sign-in.
+- A `401` from an authenticated request clears the stored session.
+- Role-based redirects: patients to `/`, doctors to `/doctor-dashboard`,
+  admins to `/admin-dashboard`.

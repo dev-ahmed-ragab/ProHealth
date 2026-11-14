@@ -1,513 +1,488 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
+  Alert,
   Box,
-  Typography,
   Button,
-  Select,
-  MenuItem,
-  TextField,
-  Grid,
-  Container,
+  Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  MenuItem,
+  Paper,
+  Select,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
 } from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
-import axios from 'axios';
-import { toast } from 'react-toastify';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import api, { getErrorMessage, toList } from '../api';
 
-const columns = [
-  { field: 'id', headerName: 'Appointment ID', width: 120 },
-  { field: 'patientName', headerName: 'Patient Name', width: 150 },
-  { field: 'doctorName', headerName: 'Doctor Name', width: 150 },
-  { field: 'date', headerName: 'Date', width: 120 },
-  { field: 'startTime', headerName: 'Start Time', width: 100 },
-  { field: 'endTime', headerName: 'End Time', width: 100 },
-  { field: 'status', headerName: 'Status', width: 120 },
-  { field: 'reason', headerName: 'Reason', width: 200 },
-];
+const STATUS_STYLES = {
+  pending: { label: 'Pending', color: 'warning' },
+  confirmed: { label: 'Confirmed', color: 'success' },
+  completed: { label: 'Completed', color: 'info' },
+  cancelled: { label: 'Cancelled', color: 'default' },
+};
 
-const statusOptions = ['pending', 'confirmed', 'cancelled', 'completed'];
+const STATUS_OPTIONS = ['pending', 'confirmed', 'completed', 'cancelled'];
+
+const formatDate = (value) => {
+  if (!value) return 'No date';
+  return new Date(value).toLocaleDateString(undefined, {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
+const StatusChip = ({ status }) => {
+  const meta = STATUS_STYLES[status] || { label: status || 'Unknown', color: 'default' };
+  return <Chip size="small" label={meta.label} color={meta.color} />;
+};
 
 function AppointmentsList() {
   const [appointments, setAppointments] = useState([]);
+  const [pagination, setPagination] = useState(null);
   const [filters, setFilters] = useState({ status: '', from: '', to: '' });
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [updatingId, setUpdatingId] = useState('');
+  const [cancelTarget, setCancelTarget] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelling, setCancelling] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const fetchAppointments = async () => {
+  const loadAppointments = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('No authentication token found. Please log in.');
-        setLoading(false);
-        return;
-      }
-      const query = new URLSearchParams(filters).toString();
-      const response = await axios.get(`/api/appointments?${query}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      console.log('API Response:', response.data); // Debugging log
-      if (response.data.data && Array.isArray(response.data.data)) {
-        const mappedAppointments = response.data.data.map((appt) => ({
-          id: appt._id,
-          patientName: appt.patientInfo?.name || 'Unknown',
-          doctorName: appt.doctorInfo?.name || 'Unknown',
-          date: new Date(appt.date).toLocaleDateString('en-US'),
-          startTime: appt.startTime || '',
-          endTime: appt.endTime || '',
-          status: appt.status || 'pending',
-          reason: appt.reason || 'None',
-        }));
-        console.log('Mapped Appointments:', mappedAppointments); // Debugging log
-        setAppointments(mappedAppointments);
-      } else {
-        toast.info('No appointments found.');
-        setAppointments([]);
-      }
-    } catch (error) {
-      console.error(
-        'Fetch Appointments Error:',
-        error.response || error.message
-      ); // Debugging log
-      toast.error(
-        `Failed to fetch appointments: ${
-          error.response?.data?.message || 'Server error'
-        }`
-      );
+      const params = { limit: 100 };
+      if (filters.status) params.status = filters.status;
+      if (filters.from) params.from = filters.from;
+      if (filters.to) params.to = filters.to;
+
+      const response = await api.get('/api/appointments', { params });
+      setAppointments(toList(response.data));
+      setPagination(response.data?.pagination || null);
+      setError('');
+    } catch (err) {
       setAppointments([]);
+      setError(getErrorMessage(err, 'Could not load appointments.'));
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchAppointments();
   }, [filters]);
 
-  const handleStatusChange = async (appointmentId, newStatus) => {
-    if (!newStatus) {
-      toast.error('Please select a status');
-      return;
-    }
+  useEffect(() => {
+    loadAppointments();
+  }, [loadAppointments]);
+
+  const counts = useMemo(
+    () =>
+      appointments.reduce((acc, appointment) => {
+        acc[appointment.status] = (acc[appointment.status] || 0) + 1;
+        return acc;
+      }, {}),
+    [appointments]
+  );
+
+  const handleFilterChange = (event) => {
+    const { name, value } = event.target;
+    setFilters((current) => ({ ...current, [name]: value }));
+  };
+
+  const clearFilters = () => setFilters({ status: '', from: '', to: '' });
+
+  const replaceAppointment = (updated) => {
+    if (!updated?._id) return;
+    setAppointments((current) =>
+      current.map((item) => (item._id === updated._id ? { ...item, ...updated } : item))
+    );
+  };
+
+  const handleStatusChange = async (appointment, status) => {
+    setUpdatingId(appointment._id);
+    setError('');
+    setSuccess('');
     try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('No authentication token found. Please log in.');
-        return;
-      }
-      await axios.patch(
-        `/api/appointments/${appointmentId}`,
-        { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      toast.success('Status updated successfully');
-      fetchAppointments();
-    } catch (error) {
-      toast.error(
-        `Error updating status: ${
-          error.response?.data?.message || 'Server error'
-        }`
-      );
+      const response = await api.patch(`/api/appointments/${appointment._id}/status`, {
+        status,
+      });
+      replaceAppointment(response.data?.data || { ...appointment, status });
+      setSuccess('Appointment status updated.');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Could not update the appointment status.'));
     } finally {
-      setLoading(false);
+      setUpdatingId('');
     }
   };
 
-  const handleCancel = async (appointmentId) => {
-    const reason = prompt('Enter cancellation reason (optional):');
+  const handleCancel = async () => {
+    if (!cancelTarget) return;
+    setCancelling(true);
+    setError('');
+    setSuccess('');
     try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('No authentication token found. Please log in.');
-        return;
-      }
-      await axios.post(
-        `/api/appointments/${appointmentId}/cancel`,
-        { cancellationReason: reason },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      toast.success('Appointment canceled successfully');
-      fetchAppointments();
-    } catch (error) {
-      toast.error(
-        `Error canceling appointment: ${
-          error.response?.data?.message || 'Server error'
-        }`
-      );
+      const response = await api.post(`/api/appointments/${cancelTarget._id}/cancel`, {
+        cancellationReason: cancelReason.trim() || undefined,
+      });
+      replaceAppointment(response.data?.data || { ...cancelTarget, status: 'cancelled' });
+      setCancelTarget(null);
+      setCancelReason('');
+      setSuccess('Appointment cancelled. The slot is available again.');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Could not cancel the appointment.'));
     } finally {
-      setLoading(false);
+      setCancelling(false);
     }
   };
 
-  const handleDelete = async (appointmentId) => {
-    if (window.confirm('Are you sure you want to delete this appointment?')) {
-      try {
-        setLoading(true);
-        const token = localStorage.getItem('token');
-        if (!token) {
-          toast.error('No authentication token found. Please log in.');
-          return;
-        }
-        await axios.delete(`/api/appointments/${appointmentId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        toast.success('Appointment deleted successfully');
-        fetchAppointments();
-      } catch (error) {
-        toast.error(
-          `Error deleting appointment: ${
-            error.response?.data?.message || 'Server error'
-          }`
-        );
-      } finally {
-        setLoading(false);
-      }
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setError('');
+    setSuccess('');
+    try {
+      await api.delete(`/api/appointments/${deleteTarget._id}`);
+      setAppointments((current) =>
+        current.filter((item) => item._id !== deleteTarget._id)
+      );
+      setDeleteTarget(null);
+      setSuccess('Appointment deleted permanently.');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Could not delete the appointment.'));
+    } finally {
+      setDeleting(false);
     }
-  };
-
-  const handleFilterChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
   return (
-    <Box
-      sx={{
-        width: '100vw' - '240px',
-        minHeight: '100vh',
-        background: 'linear-gradient(145deg, #ffffff, #f0f4f8)',
-        py: { xs: 6, md: 8 },
-      }}
-    >
-      <Container maxWidth="lg" sx={{ maxWidth: '900px', mx: 'auto' }}>
-        <Box
-          sx={{
-            p: { xs: 3, md: 4 },
-            backgroundColor: '#fff',
-            borderRadius: '12px',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-          }}
-          role="main"
-          aria-label="Appointments List"
-        >
-          <Typography
-            variant="h3"
-            sx={{
-              fontSize: { xs: '1.8rem', sm: '2.2rem', md: '3rem' },
-              fontWeight: 700,
-              color: '#005C97',
-              mb: 4,
-              lineHeight: 1.3,
-              letterSpacing: '-0.5px',
-              textAlign: 'left',
-              pl: { xs: 0, md: 3 },
-            }}
-          >
-            All Appointments
-          </Typography>
-          <Grid container spacing={{ xs: 2, sm: 3, md: 3 }} sx={{ mb: 4 }}>
-            <Grid item xs={12} sm={4}>
-              <Select
-                fullWidth
-                name="status"
-                value={filters.status}
-                onChange={handleFilterChange}
-                displayEmpty
-                sx={{
-                  borderRadius: '8px',
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#1A3C5A',
-                  },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#00ACC1',
-                  },
-                  '& .MuiSelect-select': {
-                    fontSize: { xs: '0.9rem', md: '1rem' },
-                    color: '#1A3C5A',
-                  },
-                }}
-                aria-label="Select Status Filter"
-              >
-                <MenuItem
-                  value=""
-                  sx={{
-                    fontSize: { xs: '0.9rem', md: '1rem' },
-                    color: '#1A3C5A',
-                  }}
-                >
-                  All Statuses
-                </MenuItem>
-                {statusOptions.map((status) => (
-                  <MenuItem
-                    key={status}
-                    value={status}
-                    sx={{
-                      fontSize: { xs: '0.9rem', md: '1rem' },
-                      color: '#1A3C5A',
-                    }}
-                  >
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                  </MenuItem>
-                ))}
-              </Select>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                type="date"
-                name="from"
-                label="From Date"
-                value={filters.from}
-                onChange={handleFilterChange}
-                InputLabelProps={{ shrink: true }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '8px',
-                    '& fieldset': { borderColor: '#1A3C5A' },
-                    '&:hover fieldset': { borderColor: '#00ACC1' },
-                  },
-                  '& .MuiInputLabel-root': { color: '#1A3C5A' },
-                  '& .MuiInputBase-input': {
-                    fontSize: { xs: '0.9rem', md: '1rem' },
-                    color: '#1A3C5A',
-                  },
-                }}
-                aria-label="From Date"
-              />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                type="date"
-                name="to"
-                label="To Date"
-                value={filters.to}
-                onChange={handleFilterChange}
-                InputLabelProps={{ shrink: true }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '8px',
-                    '& fieldset': { borderColor: '#1A3C5A' },
-                    '&:hover fieldset': { borderColor: '#00ACC1' },
-                  },
-                  '& .MuiInputLabel-root': { color: '#1A3C5A' },
-                  '& .MuiInputBase-input': {
-                    fontSize: { xs: '0.9rem', md: '1rem' },
-                    color: '#1A3C5A',
-                  },
-                }}
-                aria-label="To Date"
-              />
-            </Grid>
-          </Grid>
+    <Box>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h5" sx={{ fontWeight: 700, color: '#1A3C5A' }}>
+          All appointments
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Filter by status or date, confirm requests, and manage bookings.
+        </Typography>
+      </Box>
 
-          <Box sx={{ height: 'auto', width: '100%' }}>
-            {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-                <CircularProgress
-                  sx={{ color: '#00ACC1' }}
-                  aria-label="Loading appointments"
-                />
-              </Box>
-            ) : appointments.length === 0 ? (
-              <Typography
-                variant="body1"
-                sx={{
-                  fontSize: { xs: '0.9rem', md: '1rem' },
-                  color: '#4A6B8A',
-                  textAlign: 'center',
-                  my: 4,
-                }}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+          {success}
+        </Alert>
+      )}
+
+      <Paper
+        elevation={0}
+        sx={{
+          p: { xs: 2, md: 2.5 },
+          mb: 3,
+          borderRadius: '16px',
+          border: '1px solid #E6EEF5',
+        }}
+      >
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} sm={6} md={3}>
+            <Select
+              fullWidth
+              size="small"
+              name="status"
+              value={filters.status}
+              onChange={handleFilterChange}
+              displayEmpty
+              inputProps={{ 'aria-label': 'Filter by status' }}
+              sx={{ backgroundColor: '#fff' }}
+            >
+              <MenuItem value="">All statuses</MenuItem>
+              {STATUS_OPTIONS.map((status) => (
+                <MenuItem key={status} value={status}>
+                  {STATUS_STYLES[status].label}
+                  {counts[status] ? ` (${counts[status]})` : ''}
+                </MenuItem>
+              ))}
+            </Select>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <TextField
+              fullWidth
+              size="small"
+              type="date"
+              name="from"
+              label="From date"
+              value={filters.from}
+              onChange={handleFilterChange}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <TextField
+              fullWidth
+              size="small"
+              type="date"
+              name="to"
+              label="To date"
+              value={filters.to}
+              onChange={handleFilterChange}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Stack direction="row" spacing={1}>
+              <Button
+                onClick={loadAppointments}
+                variant="outlined"
+                sx={{ textTransform: 'none' }}
               >
-                No appointments available.
-              </Typography>
-            ) : (
-              <DataGrid
-                rows={appointments}
-                columns={[
-                  ...columns,
-                  {
-                    field: 'actions',
-                    headerName: 'Actions',
-                    width: 300,
-                    renderCell: (params) => (
-                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                Refresh
+              </Button>
+              <Button onClick={clearFilters} sx={{ textTransform: 'none' }}>
+                Clear
+              </Button>
+            </Stack>
+          </Grid>
+        </Grid>
+
+        {pagination && pagination.total > appointments.length && (
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
+            Showing {appointments.length} of {pagination.total} appointments. Narrow the
+            date range to see the rest.
+          </Typography>
+        )}
+      </Paper>
+
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
+          <CircularProgress />
+        </Box>
+      ) : appointments.length === 0 ? (
+        <Paper
+          elevation={0}
+          sx={{ p: 5, textAlign: 'center', borderRadius: '16px', border: '1px solid #E6EEF5' }}
+        >
+          <Typography variant="h6" sx={{ color: '#1A3C5A', mb: 1 }}>
+            No appointments found
+          </Typography>
+          <Typography color="text.secondary">
+            Try clearing the filters. New bookings will appear here.
+          </Typography>
+        </Paper>
+      ) : (
+        <TableContainer
+          component={Paper}
+          elevation={0}
+          sx={{ borderRadius: '16px', border: '1px solid #E6EEF5', overflowX: 'auto' }}
+        >
+          <Table sx={{ minWidth: 900 }} aria-label="All appointments">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700, color: '#1A3C5A' }}>Patient</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: '#1A3C5A' }}>Doctor</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: '#1A3C5A' }}>When</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: '#1A3C5A' }}>Reason</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: '#1A3C5A' }}>Status</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, color: '#1A3C5A' }}>
+                  Actions
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {appointments.map((appointment) => {
+                const isTerminal = ['completed', 'cancelled'].includes(
+                  appointment.status
+                );
+                return (
+                  <TableRow key={appointment._id} hover>
+                    <TableCell>
+                      <Typography sx={{ fontWeight: 600, color: '#1A3C5A' }}>
+                        {appointment.patientInfo?.name || 'Patient'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {appointment.patientInfo?.email || 'No email'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography sx={{ color: '#1A3C5A' }}>
+                        {appointment.doctorInfo?.name || 'Doctor'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {appointment.doctorInfo?.specialty || 'General'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ color: '#1A3C5A' }}>
+                        {formatDate(appointment.date)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {appointment.startTime}
+                        {appointment.endTime ? ` – ${appointment.endTime}` : ''}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 220 }}>
+                      <Typography variant="body2" color="text.secondary" noWrap>
+                        {appointment.reason || 'Not specified'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      {isTerminal ? (
+                        <StatusChip status={appointment.status} />
+                      ) : (
                         <Select
-                          value={params.row.status}
-                          onChange={(e) =>
-                            handleStatusChange(params.row.id, e.target.value)
-                          }
                           size="small"
-                          sx={{
-                            minWidth: 100,
-                            borderRadius: '8px',
-                            '& .MuiOutlinedInput-notchedOutline': {
-                              borderColor: '#1A3C5A',
-                            },
-                            '&:hover .MuiOutlinedInput-notchedOutline': {
-                              borderColor: '#00ACC1',
-                            },
-                            '& .MuiSelect-select': {
-                              fontSize: { xs: '0.9rem', md: '1rem' },
-                              color: '#1A3C5A',
-                            },
+                          value={appointment.status}
+                          disabled={updatingId === appointment._id}
+                          onChange={(event) =>
+                            handleStatusChange(appointment, event.target.value)
+                          }
+                          inputProps={{
+                            'aria-label': `Status for ${
+                              appointment.patientInfo?.name || 'appointment'
+                            }`,
                           }}
-                          aria-label={`Select status for appointment ${params.row.id}`}
+                          sx={{ minWidth: 130, backgroundColor: '#fff' }}
                         >
-                          {statusOptions.map((status) => (
-                            <MenuItem
-                              key={status}
-                              value={status}
-                              sx={{
-                                fontSize: { xs: '0.9rem', md: '1rem' },
-                                color: '#1A3C5A',
-                              }}
-                            >
-                              {status.charAt(0).toUpperCase() + status.slice(1)}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                        <Button
-                          variant="contained"
-                          onClick={() =>
-                            navigate(
-                              `/admin-dashboard/appointment/${params.row.id}`
+                          {STATUS_OPTIONS.filter((status) => status !== 'cancelled').map(
+                            (status) => (
+                              <MenuItem key={status} value={status}>
+                                {STATUS_STYLES[status].label}
+                              </MenuItem>
                             )
-                          }
+                          )}
+                        </Select>
+                      )}
+                    </TableCell>
+                    <TableCell align="right">
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        justifyContent="flex-end"
+                        flexWrap="wrap"
+                        useFlexGap
+                      >
+                        <Button
+                          component={Link}
+                          to={`/admin-dashboard/appointment/${appointment._id}`}
                           size="small"
-                          sx={{
-                            backgroundColor: '#00ACC1',
-                            color: '#fff',
-                            fontSize: { xs: '0.9rem', md: '1rem' },
-                            fontWeight: 600,
-                            px: 2,
-                            py: 1,
-                            borderRadius: '8px',
-                            textTransform: 'none',
-                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                            transition:
-                              'transform 0.3s ease, box-shadow 0.3s ease',
-                            '&:hover': {
-                              backgroundColor: '#0097A7',
-                              transform: 'translateY(-2px)',
-                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-                            },
-                          }}
-                          aria-label={`View details for appointment ${params.row.id}`}
+                          variant="outlined"
+                          startIcon={<VisibilityIcon />}
+                          sx={{ textTransform: 'none' }}
                         >
                           Details
                         </Button>
+                        {!isTerminal && (
+                          <Button
+                            size="small"
+                            color="error"
+                            onClick={() => {
+                              setCancelTarget(appointment);
+                              setCancelReason('');
+                            }}
+                            sx={{ textTransform: 'none' }}
+                          >
+                            Cancel
+                          </Button>
+                        )}
                         <Button
-                          variant="contained"
-                          onClick={() => handleCancel(params.row.id)}
                           size="small"
-                          disabled={['cancelled', 'completed'].includes(
-                            params.row.status
-                          )}
-                          sx={{
-                            backgroundColor: '#d32f2f',
-                            color: '#fff',
-                            fontSize: { xs: '0.9rem', md: '1rem' },
-                            fontWeight: 600,
-                            px: 2,
-                            py: 1,
-                            borderRadius: '8px',
-                            textTransform: 'none',
-                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                            transition:
-                              'transform 0.3s ease, box-shadow 0.3s ease',
-                            '&:hover': {
-                              backgroundColor: '#b71c1c',
-                              transform: 'translateY(-2px)',
-                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-                            },
-                            '&.Mui-disabled': {
-                              backgroundColor: 'rgba(0, 0, 0, 0.12)',
-                              color: 'rgba(0, 0, 0, 0.26)',
-                            },
-                          }}
-                          aria-label={`Cancel appointment ${params.row.id}`}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          variant="contained"
-                          onClick={() => handleDelete(params.row.id)}
-                          size="small"
-                          sx={{
-                            backgroundColor: '#4A6B8A',
-                            color: '#fff',
-                            fontSize: { xs: '0.9rem', md: '1rem' },
-                            fontWeight: 600,
-                            px: 2,
-                            py: 1,
-                            borderRadius: '8px',
-                            textTransform: 'none',
-                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                            transition:
-                              'transform 0.3s ease, box-shadow 0.3s ease',
-                            '&:hover': {
-                              backgroundColor: '#3a536f',
-                              transform: 'translateY(-2px)',
-                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-                            },
-                          }}
-                          aria-label={`Delete appointment ${params.row.id}`}
+                          color="inherit"
+                          onClick={() => setDeleteTarget(appointment)}
+                          sx={{ textTransform: 'none', color: '#7A5C5C' }}
                         >
                           Delete
                         </Button>
-                      </Box>
-                    ),
-                  },
-                ]}
-                pageSizeOptions={[5, 10, 20]}
-                initialState={{
-                  pagination: {
-                    paginationModel: { page: 0, pageSize: 5 },
-                  },
-                }}
-                sx={{
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                  backgroundColor: '#fff',
-                  '& .MuiDataGrid-columnHeaders': {
-                    background: 'linear-gradient(145deg, #ffffff, #f0f4f8)',
-                    borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
-                  },
-                  '& .MuiDataGrid-columnHeaderTitle': {
-                    fontSize: { xs: '0.9rem', md: '1rem' },
-                    fontWeight: 600,
-                    color: '#1A3C5A',
-                  },
-                  '& .MuiDataGrid-row': {
-                    '&:nth-of-type(even)': {
-                      backgroundColor: '#f9fbfc',
-                    },
-                    '&:hover': {
-                      backgroundColor: 'rgba(0, 172, 193, 0.1)',
-                    },
-                  },
-                  '& .MuiDataGrid-cell': {
-                    fontSize: { xs: '0.9rem', md: '1rem' },
-                    color: '#4A6B8A',
-                  },
-                  '& .MuiTablePagination-root': {
-                    fontSize: { xs: '0.9rem', md: '1rem' },
-                    color: '#1A3C5A',
-                  },
-                  '& .MuiDataGrid-footerContainer': {
-                    backgroundColor: '#f0f4f8',
-                    borderTop: '1px solid rgba(0, 0, 0, 0.1)',
-                  },
-                }}
-                aria-label="Appointments Data Grid"
-              />
-            )}
-          </Box>
-        </Box>
-      </Container>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+
+      <Dialog
+        open={Boolean(cancelTarget)}
+        onClose={() => setCancelTarget(null)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Cancel appointment</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {cancelTarget
+              ? `Cancel ${cancelTarget.patientInfo?.name || 'this patient'}'s visit on ${formatDate(
+                  cancelTarget.date
+                )} at ${cancelTarget.startTime}? The slot becomes bookable again.`
+              : ''}
+          </Typography>
+          <TextField
+            label="Reason (optional)"
+            fullWidth
+            multiline
+            minRows={2}
+            value={cancelReason}
+            onChange={(event) => setCancelReason(event.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCancelTarget(null)} disabled={cancelling}>
+            Keep appointment
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={handleCancel}
+            disabled={cancelling}
+          >
+            {cancelling ? 'Cancelling…' : 'Cancel appointment'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Delete appointment permanently</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            {deleteTarget
+              ? `This removes the record for ${
+                  deleteTarget.patientInfo?.name || 'this patient'
+                } on ${formatDate(deleteTarget.date)} at ${
+                  deleteTarget.startTime
+                }. This cannot be undone.`
+              : ''}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteTarget(null)} disabled={deleting}>
+            Keep record
+          </Button>
+          <Button color="error" variant="contained" onClick={handleDelete} disabled={deleting}>
+            {deleting ? 'Deleting…' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

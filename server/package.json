@@ -1,16 +1,17 @@
 {
-  "name": "blog",
+  "name": "prohealth-api",
   "version": "1.0.0",
-  "description": "Blog backend API with Node.js, Express, and MongoDB",
+  "description": "ProHealth clinic API built with Node.js, Express, and MongoDB",
   "main": "index.js",
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js",
-    "build": "mkdir -p dist && cp -r src functions package.json index.js .env dist/ && cd dist && npm install --production"
+    "dev": "nodemon index.js"
   },
   "keywords": [
-    "blog",
+    "prohealth",
+    "clinic",
+    "appointments",
     "api",
     "nodejs",
     "express",

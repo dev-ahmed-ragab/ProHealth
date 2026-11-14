@@ -1,7 +1,6 @@
 import React from 'react';
-import { Box, Grid, Typography, Stack } from '@mui/material';
+import { Box, Grid, Typography } from '@mui/material';
 import VerifiedIcon from '@mui/icons-material/Verified';
-import CircularIconText from './CircularIconText';
 
 const AboutUsSection = () => {
   return (
@@ -59,23 +58,36 @@ const AboutUsSection = () => {
             <Box
               sx={{
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: { xs: '60px', sm: '70', md: '80px' },
-                height: { xs: '60px', sm: '70', md: '80px' },
-                background: 'linear-gradient(145deg, #ffffff, #f0f4f8)',
+                width: { xs: '70px', sm: '80px', md: '90px' },
+                height: { xs: '70px', sm: '80px', md: '90px' },
+                backgroundColor: '#ffffff',
+                border: '3px solid #00ACC1',
                 borderRadius: '50%',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                animation: 'pulse 2s ease-in-out infinite',
+                boxShadow: '0 4px 14px rgba(0, 172, 193, 0.25)',
+                animation: 'pulse 2.5s ease-in-out infinite',
                 '@keyframes pulse': {
                   '0%': { transform: 'scale(1)' },
-                  '50%': { transform: 'scale(1.14)' },
+                  '50%': { transform: 'scale(1.06)' },
                   '100%': { transform: 'scale(1)' },
                 },
               }}
             >
-              {/* <CircularIconText /> */}
-              TOP
+              <VerifiedIcon sx={{ color: '#00ACC1', fontSize: { xs: '1.4rem', md: '1.8rem' } }} />
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 800,
+                  fontSize: { xs: '0.65rem', md: '0.75rem' },
+                  color: '#1A3C5A',
+                  lineHeight: 1,
+                  mt: 0.3,
+                }}
+              >
+                TOP CARE
+              </Typography>
             </Box>
           </Box>
         </Grid>

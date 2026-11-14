@@ -1,470 +1,485 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
-  Container,
-  Typography,
+  Alert,
   Box,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Button,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Chip,
   CircularProgress,
-  Card,
-  CardContent,
-  useMediaQuery,
-  useTheme,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  Paper,
+  Stack,
+  Tab,
+  Tabs,
+  TextField,
+  Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import EventBusyIcon from '@mui/icons-material/EventBusy';
+import api, { getErrorMessage, toList } from '../api';
+
+const STATUS_STYLES = {
+  pending: { label: 'Pending', color: 'warning' },
+  confirmed: { label: 'Confirmed', color: 'success' },
+  completed: { label: 'Completed', color: 'info' },
+  cancelled: { label: 'Cancelled', color: 'default' },
+};
+
+const todayISO = () => {
+  const now = new Date();
+  const offset = now.getTimezoneOffset();
+  return new Date(now.getTime() - offset * 60000).toISOString().slice(0, 10);
+};
+
+const formatDate = (value) => {
+  if (!value) return 'Date not set';
+  return new Date(value).toLocaleDateString(undefined, {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
+const StatusChip = ({ status }) => {
+  const style = STATUS_STYLES[status] || {
+    label: status || 'Unknown',
+    color: 'default',
+  };
+  return <Chip size="small" label={style.label} color={style.color} />;
+};
 
 function MyAppointmentsPage() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [openUpdateDialog, setOpenUpdateDialog] = useState(false);
-  const [openCancelDialog, setOpenCancelDialog] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [tab, setTab] = useState('upcoming');
+
+  const [rescheduleTarget, setRescheduleTarget] = useState(null);
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleSlots, setRescheduleSlots] = useState([]);
+  const [rescheduleTime, setRescheduleTime] = useState('');
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const [cancelTarget, setCancelTarget] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
-  const [cancelAppointmentId, setCancelAppointmentId] = useState(null);
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
-  const [updateForm, setUpdateForm] = useState({
-    date: '',
-    startTime: '',
-    reason: '',
-  });
 
-  // Redirect if not a user
-  useEffect(() => {
-    if (!user || user.user.role !== 'user') {
-      navigate('/login');
+  const fetchAppointments = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/api/appointments', {
+        params: { limit: 100 },
+      });
+      setAppointments(toList(response.data));
+      setError('');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Could not load your appointments.'));
+    } finally {
+      setLoading(false);
     }
-  }, [user, navigate]);
+  }, []);
 
-  // Fetch user appointments
   useEffect(() => {
-    const fetchAppointments = async () => {
+    fetchAppointments();
+  }, [fetchAppointments]);
+
+  const now = useMemo(() => new Date(), []);
+
+  const filtered = useMemo(() => {
+    return appointments.filter((appointment) => {
+      const isCancelled = appointment.status === 'cancelled';
+      const appointmentDate = new Date(appointment.date);
+      const isPast =
+        appointment.status === 'completed' || appointmentDate < now;
+
+      if (tab === 'cancelled') return isCancelled;
+      if (tab === 'past') return !isCancelled && isPast;
+      return !isCancelled && !isPast;
+    });
+  }, [appointments, now, tab]);
+
+  const counts = useMemo(
+    () => ({
+      upcoming: appointments.filter(
+        (a) =>
+          a.status !== 'cancelled' &&
+          a.status !== 'completed' &&
+          new Date(a.date) >= now
+      ).length,
+      past: appointments.filter(
+        (a) =>
+          a.status !== 'cancelled' &&
+          (a.status === 'completed' || new Date(a.date) < now)
+      ).length,
+      cancelled: appointments.filter((a) => a.status === 'cancelled').length,
+    }),
+    [appointments, now]
+  );
+
+  const openReschedule = (appointment) => {
+    setRescheduleTarget(appointment);
+    setRescheduleDate(
+      new Date(appointment.date).toISOString().slice(0, 10) || todayISO()
+    );
+    setRescheduleTime(appointment.startTime || '');
+    setRescheduleSlots([]);
+    setError('');
+  };
+
+  useEffect(() => {
+    if (!rescheduleTarget || !rescheduleDate) {
+      setRescheduleSlots([]);
+      return undefined;
+    }
+
+    let cancelled = false;
+    const loadSlots = async () => {
+      setLoadingSlots(true);
       try {
-        const res = await axios.get('/api/appointments', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
-        setAppointments(
-          res.data.data.filter((app) => app.status !== 'cancelled')
+        const doctorId =
+          rescheduleTarget.doctor || rescheduleTarget.doctorInfo?._id;
+        const response = await api.get(
+          `/api/appointments/available/${doctorId}/${rescheduleDate}`
         );
-        setLoading(false);
-        setError(null);
+        if (!cancelled) {
+          const slots = toList(response.data);
+          // Keep the current slot selectable when the user just changes the reason.
+          const current = rescheduleTarget.startTime;
+          const hasCurrent = slots.some(
+            (slot) => (slot.startTime || slot) === current
+          );
+          setRescheduleSlots(
+            hasCurrent || !current
+              ? slots
+              : [
+                  {
+                    startTime: current,
+                    endTime: rescheduleTarget.endTime || '',
+                  },
+                  ...slots,
+                ]
+          );
+        }
       } catch (err) {
-        console.error('Error fetching appointments:', err);
-        setError('Failed to load appointments');
-        setLoading(false);
+        if (!cancelled) {
+          setRescheduleSlots([]);
+          setError(getErrorMessage(err, 'Could not load available times.'));
+        }
+      } finally {
+        if (!cancelled) setLoadingSlots(false);
       }
     };
 
-    if (user) {
-      fetchAppointments();
-    }
-  }, [user]);
+    loadSlots();
+    return () => {
+      cancelled = true;
+    };
+  }, [rescheduleTarget, rescheduleDate]);
 
-  // Open update dialog and populate form
-  const handleOpenUpdateDialog = async (appointmentId) => {
+  const handleReschedule = async () => {
+    if (!rescheduleTarget) return;
+    setSaving(true);
+    setError('');
     try {
-      const res = await axios.get(`/api/appointments/${appointmentId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      await api.put(`/api/appointments/${rescheduleTarget._id}`, {
+        date: rescheduleDate,
+        startTime: rescheduleTime,
+        reason: rescheduleTarget.reason || undefined,
       });
-      const appointment = res.data.data;
-      setSelectedAppointment(appointment);
-      setUpdateForm({
-        date: new Date(appointment.date).toISOString().split('T')[0],
-        startTime: appointment.startTime,
-        reason: appointment.reason || '',
+      setRescheduleTarget(null);
+      setSuccess('Your appointment was updated.');
+      await fetchAppointments();
+    } catch (err) {
+      setError(getErrorMessage(err, 'Could not update the appointment.'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!cancelTarget) return;
+    setSaving(true);
+    setError('');
+    try {
+      await api.post(`/api/appointments/${cancelTarget._id}/cancel`, {
+        cancellationReason: cancelReason.trim() || undefined,
       });
-      setOpenUpdateDialog(true);
-      setError(null);
+      setCancelTarget(null);
+      setCancelReason('');
+      setSuccess('Your appointment was cancelled.');
+      await fetchAppointments();
     } catch (err) {
-      console.error('Error fetching appointment details:', err);
-      setError('Failed to load appointment details');
+      setError(getErrorMessage(err, 'Could not cancel the appointment.'));
+    } finally {
+      setSaving(false);
     }
   };
 
-  // Close update dialog
-  const handleCloseUpdateDialog = () => {
-    setOpenUpdateDialog(false);
-    setSelectedAppointment(null);
-    setUpdateForm({ date: '', startTime: '', reason: '' });
-  };
-  // Update appointment
-  const handleUpdateAppointment = async () => {
-    try {
-      // Validate date
-      if (!updateForm.date) {
-        setError('التاريخ مطلوب');
-        return;
-      }
-      const selectedDate = new Date(updateForm.date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (selectedDate < today) {
-        setError('لا يمكن تحديث الموعد إلى تاريخ في الماضي');
-        return;
-      }
-
-      // Validate time format
-      if (
-        !updateForm.startTime ||
-        !/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(updateForm.startTime)
-      ) {
-        setError('صيغة الوقت غير صحيحة (استخدم HH:MM)');
-        return;
-      }
-      const res = await axios.put(
-        `/api/appointments/${selectedAppointment._id}`,
-        updateForm,
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        }
-      );
-      setAppointments(
-        appointments.map((app) =>
-          app._id === selectedAppointment._id ? res.data.data : app
-        )
-      );
-      setError(null);
-      handleCloseUpdateDialog();
-    } catch (err) {
-      console.error('Error updating appointment:', err);
-      const errorMessage = err.response?.data?.message || 'فشل في تحديث الموعد';
-      setError(errorMessage);
-    }
-  };
-
-  // Open cancel dialog
-  const handleOpenCancelDialog = (appointmentId) => {
-    setCancelAppointmentId(appointmentId);
-    setOpenCancelDialog(true);
-  };
-
-  // Close cancel dialog
-  const handleCloseCancelDialog = () => {
-    setOpenCancelDialog(false);
-    setCancelReason('');
-    setCancelAppointmentId(null);
-  };
-
-  // Confirm cancel
-  const handleConfirmCancel = async () => {
-    try {
-      const res = await axios.post(
-        `/api/appointments/${cancelAppointmentId}/cancel`,
-        { cancellationReason: cancelReason },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        }
-      );
-      setAppointments(
-        appointments.filter((app) => app._id !== cancelAppointmentId)
-      );
-      setError(null);
-      handleCloseCancelDialog();
-    } catch (err) {
-      console.error('Error canceling appointment:', err);
-      setError('Failed to cancel appointment');
-    }
-  };
+  const canModify = (appointment) =>
+    ['pending', 'confirmed'].includes(appointment.status) &&
+    new Date(appointment.date) >= new Date(new Date().toDateString());
 
   if (loading) {
     return (
-      <Container maxWidth="md">
-        <Box sx={{ my: 4, textAlign: 'center' }}>
-          <CircularProgress />
-          <Typography>Loading appointments...</Typography>
-        </Box>
-      </Container>
-    );
-  }
-
-  if (error) {
-    return (
-      <Container maxWidth="md">
-        <Box sx={{ my: 4 }}>
-          <Typography color="error">{error}</Typography>
-        </Box>
-      </Container>
-    );
-  }
-
-  if (appointments.length === 0) {
-    return (
-      <Container maxWidth="md">
-        <Box sx={{ my: 4, textAlign: 'center' }}>
-          <Typography variant="h6" gutterBottom>
-            No appointments found.
-          </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            component={Link}
-            to="/find-doctor"
-          >
-            Book an Appointment
-          </Button>
-        </Box>
-      </Container>
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 12 }}>
+        <CircularProgress />
+      </Box>
     );
   }
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          My Appointments
-        </Typography>
-        {isMobile ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {appointments.map((appointment) => {
-              console.log(appointment);
-              return (
-                <TableRow
+    <Box sx={{ maxWidth: 1000, mx: 'auto', px: { xs: 2, md: 3 }, pt: { xs: 11, md: 13 }, pb: { xs: 6, md: 8 } }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 2,
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          mb: 3,
+        }}
+      >
+        <Box>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 700, color: '#1A3C5A' }}>
+            My Appointments
+          </Typography>
+          <Typography color="text.secondary">
+            Track, reschedule, or cancel your visits.
+          </Typography>
+        </Box>
+        <Button
+          component={Link}
+          to="/find-doctor"
+          variant="contained"
+          startIcon={<AddIcon />}
+          sx={{
+            backgroundColor: '#00ACC1',
+            textTransform: 'none',
+            '&:hover': { backgroundColor: '#0097A7' },
+          }}
+        >
+          Book new appointment
+        </Button>
+      </Box>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+          {success}
+        </Alert>
+      )}
+
+      <Paper elevation={0} sx={{ borderRadius: '14px', boxShadow: '0 6px 18px rgba(0, 0, 0, 0.08)' }}>
+        <Tabs
+          value={tab}
+          onChange={(event, value) => setTab(value)}
+          variant="scrollable"
+          allowScrollButtonsMobile
+          sx={{ borderBottom: '1px solid #E5EAF0', px: 1 }}
+        >
+          <Tab value="upcoming" label={`Upcoming (${counts.upcoming})`} />
+          <Tab value="past" label={`Past (${counts.past})`} />
+          <Tab value="cancelled" label={`Cancelled (${counts.cancelled})`} />
+        </Tabs>
+
+        <Box sx={{ p: { xs: 2, md: 3 } }}>
+          {filtered.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6 }}>
+              <EventBusyIcon sx={{ fontSize: 52, color: '#B0BEC5', mb: 1 }} />
+              <Typography variant="h6" sx={{ color: '#1A3C5A' }}>
+                Nothing here yet
+              </Typography>
+              <Typography color="text.secondary" sx={{ mb: 3 }}>
+                {tab === 'upcoming'
+                  ? 'You have no upcoming appointments.'
+                  : tab === 'past'
+                  ? 'You have no past appointments.'
+                  : 'You have no cancelled appointments.'}
+              </Typography>
+              {tab === 'upcoming' && (
+                <Button
+                  component={Link}
+                  to="/find-doctor"
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                >
+                  Find a doctor
+                </Button>
+              )}
+            </Box>
+          ) : (
+            <Stack spacing={2}>
+              {filtered.map((appointment) => (
+                <Box
                   key={appointment._id}
                   sx={{
-                    '&:hover': {
-                      backgroundColor: '#f0f4f8',
-                      transform: 'translateY(-2px)',
-                      boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)',
-                      transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                    },
+                    border: '1px solid #E5EAF0',
+                    borderRadius: '12px',
+                    p: 2,
+                    display: 'flex',
+                    flexDirection: { xs: 'column', md: 'row' },
+                    gap: 2,
+                    alignItems: { xs: 'stretch', md: 'center' },
+                    justifyContent: 'space-between',
                   }}
                 >
-                  <TableCell sx={{ color: '#4A6B8A' }}>
-                    {new Date(appointment.date).toLocaleDateString('en-US')}
-                  </TableCell>
-                  <TableCell sx={{ color: '#4A6B8A' }}>
-                    {typeof appointment.startTime === 'object'
-                      ? JSON.stringify(appointment.startTime)
-                      : appointment.startTime || 'N/A'}
-                  </TableCell>
-                  <TableCell sx={{ color: '#4A6B8A' }}>
-                    {typeof appointment.endTime === 'object'
-                      ? JSON.stringify(appointment.endTime)
-                      : appointment.endTime || 'N/A'}
-                  </TableCell>
-                  <TableCell sx={{ color: '#4A6B8A' }}>
-                    {
-                      {
-                        pending: 'Pending',
-                        confirmed: 'Confirmed',
-                        cancelled: 'Cancelled',
-                        completed: 'Completed',
-                      }[appointment.status]
-                    }
-                  </TableCell>
-                  <TableCell sx={{ color: '#4A6B8A' }}>
-                    {appointment.reason}
-                  </TableCell>
-                  <TableCell>
-                    {appointment.status === 'pending' && (
+                  <Box sx={{ flex: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
+                      <Typography sx={{ fontWeight: 700, color: '#1A3C5A' }}>
+                        Dr. {appointment.doctorInfo?.name || 'Unknown doctor'}
+                      </Typography>
+                      <StatusChip status={appointment.status} />
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">
+                      {formatDate(appointment.date)} · {appointment.startTime}
+                      {appointment.endTime ? ` – ${appointment.endTime}` : ''}
+                    </Typography>
+                    {appointment.reason && (
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                        Reason: {appointment.reason}
+                      </Typography>
+                    )}
+                  </Box>
+
+                  {canModify(appointment) && (
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                       <Button
-                        variant="contained"
-                        sx={{
-                          backgroundColor: '#00ACC1',
-                          color: '#fff',
-                          fontSize: { xs: '0.9rem', md: '1rem' },
-                          fontWeight: 600,
-                          px: 2,
-                          py: 1,
-                          borderRadius: '8px',
-                          textTransform: 'none',
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                          transition:
-                            'transform 0.3s ease, box-shadow 0.3s ease',
-                          '&:hover': {
-                            backgroundColor: '#0097A7',
-                            transform: 'translateY(-2px)',
-                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-                          },
-                        }}
+                        size="small"
+                        variant="outlined"
+                        onClick={() => openReschedule(appointment)}
+                      >
+                        Reschedule
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="error"
                         onClick={() => {
-                          setSelectedAppointment(appointment);
-                          setOpenCancelDialog(true);
+                          setCancelTarget(appointment);
+                          setCancelReason('');
                         }}
-                        aria-label={`Cancel appointment on ${new Date(
-                          appointment.date
-                        ).toLocaleDateString('en-US')}`}
                       >
                         Cancel
                       </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </Box>
-        ) : (
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Doctor</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Time</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Reason</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {appointments.map((appointment, index) => (
-                  <TableRow
-                    key={appointment._id}
-                    sx={{
-                      backgroundColor: index % 2 === 0 ? '#f5f5f5' : '#ffffff',
-                    }}
-                  >
-                    <TableCell>
-                      {appointment.doctorInfo?.name || 'Unknown'}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(appointment.date).toLocaleDateString('en-US')}
-                    </TableCell>
-                    <TableCell>{appointment.startTime}</TableCell>
-                    <TableCell>{appointment.status}</TableCell>
-                    <TableCell>
-                      {appointment.reason || 'Not specified'}
-                    </TableCell>
-                    <TableCell>
-                      {appointment.status !== 'completed' && (
-                        <>
-                          <Button
-                            variant="contained"
-                            color="primary"
-                            size="small"
-                            sx={{ mx: 1 }}
-                            onClick={() =>
-                              handleOpenUpdateDialog(appointment._id)
-                            }
-                          >
-                            Update
-                          </Button>
-                          <Button
-                            variant="contained"
-                            color="secondary"
-                            size="small"
-                            sx={{ mx: 1 }}
-                            onClick={() =>
-                              handleOpenCancelDialog(appointment._id)
-                            }
-                          >
-                            Cancel
-                          </Button>
-                        </>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-      </Box>
+                    </Box>
+                  )}
+                </Box>
+              ))}
+            </Stack>
+          )}
+        </Box>
+      </Paper>
 
-      {/* Update Appointment Dialog */}
       <Dialog
-        open={openUpdateDialog}
-        onClose={handleCloseUpdateDialog}
+        open={Boolean(rescheduleTarget)}
+        onClose={() => setRescheduleTarget(null)}
         fullWidth
         maxWidth="sm"
       >
-        <DialogTitle>Update Appointment</DialogTitle>
+        <DialogTitle>Reschedule appointment</DialogTitle>
         <DialogContent>
           <TextField
             margin="dense"
-            label="Date"
+            label="New date"
             type="date"
             fullWidth
-            value={updateForm.date}
-            onChange={(e) =>
-              setUpdateForm({ ...updateForm, date: e.target.value })
-            }
+            value={rescheduleDate}
+            onChange={(event) => setRescheduleDate(event.target.value)}
             InputLabelProps={{ shrink: true }}
+            inputProps={{ min: todayISO() }}
           />
-          <TextField
-            margin="dense"
-            label="Start Time (HH:MM)"
-            fullWidth
-            value={updateForm.startTime}
-            onChange={(e) =>
-              setUpdateForm({ ...updateForm, startTime: e.target.value })
-            }
-            error={
-              updateForm.startTime &&
-              !/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(updateForm.startTime)
-            }
-            helperText={
-              updateForm.startTime &&
-              !/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(updateForm.startTime)
-                ? 'Use HH:MM format (e.g., 14:30)'
-                : ''
-            }
-          />
-          <TextField
-            margin="dense"
-            label="Reason"
-            fullWidth
-            value={updateForm.reason}
-            onChange={(e) =>
-              setUpdateForm({ ...updateForm, reason: e.target.value })
-            }
-          />
+
+          <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, color: '#1A3C5A' }}>
+            Available times
+          </Typography>
+
+          {loadingSlots ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1 }}>
+              <CircularProgress size={18} />
+              <Typography variant="body2" color="text.secondary">
+                Loading times…
+              </Typography>
+            </Box>
+          ) : rescheduleSlots.length === 0 ? (
+            <Alert severity="info">No times available on that date.</Alert>
+          ) : (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {rescheduleSlots.map((slot) => {
+                const value = slot.startTime || slot;
+                const selected = rescheduleTime === value;
+                return (
+                  <Chip
+                    key={value}
+                    label={slot.endTime ? `${slot.startTime} – ${slot.endTime}` : value}
+                    onClick={() => setRescheduleTime(value)}
+                    sx={{
+                      fontWeight: 600,
+                      backgroundColor: selected ? '#00ACC1' : '#F0F4F8',
+                      color: selected ? '#fff' : '#1A3C5A',
+                      '&:hover': { backgroundColor: selected ? '#0097A7' : '#E0F7FA' },
+                    }}
+                  />
+                );
+              })}
+            </Box>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseUpdateDialog}>Cancel</Button>
-          <Button onClick={handleUpdateAppointment} variant="contained">
-            Save
+          <Button onClick={() => setRescheduleTarget(null)}>Close</Button>
+          <Button
+            variant="contained"
+            onClick={handleReschedule}
+            disabled={saving || !rescheduleDate || !rescheduleTime}
+            sx={{ backgroundColor: '#00ACC1', '&:hover': { backgroundColor: '#0097A7' } }}
+          >
+            {saving ? 'Saving…' : 'Save changes'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Cancel Appointment Dialog */}
       <Dialog
-        open={openCancelDialog}
-        onClose={handleCloseCancelDialog}
+        open={Boolean(cancelTarget)}
+        onClose={() => setCancelTarget(null)}
         fullWidth
         maxWidth="sm"
       >
-        <DialogTitle>Cancel Appointment</DialogTitle>
+        <DialogTitle>Cancel appointment</DialogTitle>
         <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {cancelTarget
+              ? `Cancel your visit with Dr. ${
+                  cancelTarget.doctorInfo?.name || 'this doctor'
+                } on ${formatDate(cancelTarget.date)}?`
+              : ''}
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
           <TextField
-            margin="dense"
-            label="Reason for Cancellation (Optional)"
+            label="Reason for cancellation (optional)"
             fullWidth
+            multiline
+            minRows={2}
             value={cancelReason}
-            onChange={(e) => setCancelReason(e.target.value)}
+            onChange={(event) => setCancelReason(event.target.value)}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseCancelDialog}>Close</Button>
-          <Button
-            onClick={handleConfirmCancel}
-            variant="contained"
-            color="secondary"
-          >
-            Confirm Cancel
+          <Button onClick={() => setCancelTarget(null)}>Keep appointment</Button>
+          <Button color="error" variant="contained" onClick={handleCancel} disabled={saving}>
+            {saving ? 'Cancelling…' : 'Cancel appointment'}
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+    </Box>
   );
 }
 

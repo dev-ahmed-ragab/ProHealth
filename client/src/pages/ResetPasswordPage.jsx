@@ -1,180 +1,137 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { TextField, Button, Box, Typography } from '@mui/material';
-import { Container } from '@mui/system';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Paper,
+  TextField,
+  Typography,
+} from '@mui/material';
+import { useAuth } from '../context/AuthContext';
 
 function ResetPasswordPage() {
   const { token } = useParams();
+  const navigate = useNavigate();
+  const { resetPassword } = useAuth();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const navigate = useNavigate();
+  const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
+    setMessage('');
+
+    if (password.length < 8) {
+      setError('The password must be at least 8 characters.');
       return;
     }
+    if (password !== confirmPassword) {
+      setError('The passwords do not match.');
+      return;
+    }
+
+    setSubmitting(true);
     try {
-      await axios.post(`/api/auth/reset-password/${token}`, { password });
-      setMessage(
-        'Password reset successfully. You can now login with your new password.'
-      );
-      setError('');
-      setTimeout(() => navigate('/login'), 3000);
+      const response = await resetPassword(token, password);
+      setMessage(response);
+      setTimeout(() => navigate('/login', { replace: true }), 2500);
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to reset password');
-      setMessage('');
+      setError(err.message || 'Could not reset the password.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <Box
       sx={{
-        width: '100vw',
-        minHeight: '100vh',
+        minHeight: 'calc(100vh - 64px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'transparent',
-        px: { xs: 2, sm: 3, md: 4 },
-        py: { xs: 6, md: 8 },
+        px: 2,
+        py: 6,
       }}
     >
-      <Container
-        maxWidth="sm"
+      <Paper
+        elevation={0}
         sx={{
-          backgroundColor: '#fff',
-          borderRadius: '12px',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-          p: { xs: 3, md: 4 },
+          width: '100%',
+          maxWidth: 460,
+          p: { xs: 3, md: 4.5 },
+          borderRadius: '16px',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.08)',
         }}
       >
-        <Typography
-          variant="h3"
-          component="h1"
-          sx={{
-            fontSize: { xs: '1.8rem', sm: '2.2rem', md: '3rem' },
-            fontWeight: 700,
-            color: '#005C97',
-            mb: 2,
-            lineHeight: 1.3,
-            letterSpacing: '-0.5px',
-            textAlign: 'center',
-          }}
-        >
-          Reset Password
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 700, color: '#1A3C5A', mb: 0.5 }}>
+          Choose a new password
         </Typography>
+        <Typography color="text.secondary" sx={{ mb: 3 }}>
+          Your new password must be at least 8 characters long.
+        </Typography>
+
         {error && (
-          <Typography
-            color="error"
-            sx={{
-              textAlign: 'center',
-              mb: 2,
-            }}
-          >
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
             {error}
-          </Typography>
+          </Alert>
         )}
         {message && (
-          <Typography
-            color="success.main"
-            sx={{
-              textAlign: 'center',
-              mb: 2,
-            }}
-          >
-            {message}
-          </Typography>
+          <Alert severity="success" sx={{ mb: 2 }}>
+            {message} Redirecting to sign in…
+          </Alert>
         )}
-        <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 2 }}>
+
+        <Box component="form" onSubmit={handleSubmit} noValidate>
           <TextField
-            label="New Password"
+            label="New password"
             type="password"
             fullWidth
-            variant="outlined"
             margin="normal"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="new-password"
             required
-            aria-label="New Password"
-            sx={{
-              borderRadius: '8px',
-              '& .MuiInputBase-input': {
-                color: '#1A3C5A',
-              },
-              '& .MuiInputLabel-root': {
-                color: '#1A3C5A',
-              },
-              '& .MuiOutlinedInput-root': {
-                '& fieldset': {
-                  borderColor: '#00ACC1',
-                },
-                '&:hover fieldset': {
-                  borderColor: '#0097A7',
-                },
-              },
-            }}
           />
           <TextField
-            label="Confirm New Password"
+            label="Confirm new password"
             type="password"
             fullWidth
-            variant="outlined"
             margin="normal"
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            autoComplete="new-password"
             required
-            aria-label="Confirm New Password"
-            sx={{
-              borderRadius: '8px',
-              '& .MuiInputBase-input': {
-                color: '#1A3C5A',
-              },
-              '& .MuiInputLabel-root': {
-                color: '#1A3C5A',
-              },
-              '& .MuiOutlinedInput-root': {
-                '& fieldset': {
-                  borderColor: '#00ACC1',
-                },
-                '&:hover fieldset': {
-                  borderColor: '#0097A7',
-                },
-              },
-            }}
           />
           <Button
             type="submit"
             variant="contained"
             fullWidth
+            size="large"
+            disabled={submitting || Boolean(message)}
             sx={{
+              mt: 2.5,
+              py: 1.3,
               backgroundColor: '#00ACC1',
-              color: '#fff',
-              fontSize: { xs: '0.9rem', md: '1rem' },
-              fontWeight: 600,
-              px: 3,
-              py: 1.5,
-              borderRadius: '8px',
               textTransform: 'none',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-              mt: 3,
-              mb: 2,
-              '&:hover': {
-                backgroundColor: '#0097A7',
-                transform: 'translateY(-2px)',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-              },
+              fontWeight: 600,
+              '&:hover': { backgroundColor: '#0097A7' },
             }}
           >
-            Reset Password
+            {submitting ? <CircularProgress size={24} color="inherit" /> : 'Reset password'}
           </Button>
         </Box>
-      </Container>
+
+        <Typography variant="body2" sx={{ mt: 3, textAlign: 'center' }}>
+          <Button component={Link} to="/login" size="small" sx={{ textTransform: 'none' }}>
+            Back to sign in
+          </Button>
+        </Typography>
+      </Paper>
     </Box>
   );
 }

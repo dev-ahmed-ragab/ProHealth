@@ -1,233 +1,225 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Box,
-  Typography,
-  TextField,
   Button,
-  List,
-  ListItem,
-  ListItemText,
+  Chip,
+  CircularProgress,
+  Paper,
+  TextField,
+  Typography,
 } from '@mui/material';
-import axios from 'axios';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import { useAuth } from '../context/AuthContext';
+import api, { getErrorMessage } from '../api';
+
+const pad = (value) => String(value).padStart(2, '0');
+
+const toISODate = (date) =>
+  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+const todayISO = () => toISODate(new Date());
+
+const tomorrowISO = () => {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  return toISODate(date);
+};
+
+const formatDate = (value) => {
+  if (!value) return '';
+  return new Date(`${value}T00:00:00`).toLocaleDateString(undefined, {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+};
 
 const DoctorAvailableSlots = () => {
   const { user } = useAuth();
-  const [doctorId, setDoctorId] = useState('');
-  const [date, setDate] = useState('');
+  const doctorId = user?.id || user?._id;
+
+  const [date, setDate] = useState(todayISO());
   const [slots, setSlots] = useState([]);
-  const [error, setError] = useState(null);
-  const token = localStorage.getItem('token');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [loadedFor, setLoadedFor] = useState('');
+
+  const minDate = useMemo(todayISO, []);
 
   useEffect(() => {
-    if (token) {
-      axios
-        .get('/api/auth/me', {
-          headers: { Authorization: `Bearer ${token}` },
-          validateStatus: (status) => status < 500,
-        })
-        .then((res) => {
-          setDoctorId(res.data.user.id || '');
-        })
-        .catch((error) => {
-          console.error('Auth verification failed:', error);
-        });
-    }
-  }, [token]);
-
-  const handleFetchSlots = async () => {
-    try {
-      setError(null);
-      if (!doctorId) {
-        setError('Doctor ID not available');
-        return;
-      }
-      if (!date) {
-        setError('Please enter a date');
-        return;
-      }
-
-      const res = await axios.get(
-        `https://pro-health-backend.vercel.app/api/appointments/available/${doctorId}/${date}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      setSlots(res.data.data || []);
-    } catch (err) {
-      console.error('Error fetching slots:', err);
-      setError(
-        err.response?.data?.message || 'Failed to fetch slots: Unknown error'
-      );
+    if (!doctorId || !date) {
       setSlots([]);
+      return undefined;
     }
-  };
+
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const response = await api.get(
+          `/api/appointments/available/${doctorId}/${date}`
+        );
+        if (!cancelled) {
+          setSlots(Array.isArray(response.data?.data) ? response.data.data : []);
+          setLoadedFor(date);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setSlots([]);
+          setLoadedFor(date);
+          setError(getErrorMessage(err, 'Could not load your availability.'));
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [date, doctorId]);
 
   return (
-    <Box
-      sx={{
-        maxWidth: '1400px',
-        mx: 'auto',
-        width: '100%',
-        px: { xs: 2, sm: 3, md: 4 },
-        py: { xs: 4, md: 6 },
-      }}
-    >
-      <Typography
-        variant="h3"
-        sx={{
-          fontSize: { xs: '1.5rem', sm: '1.8rem', md: '2.5rem' },
-          fontWeight: 700,
-          color: '#005C97',
-          lineHeight: 1.3,
-          letterSpacing: '-0.5px',
-          mb: 3,
-        }}
-        aria-label="Available Slots"
-      >
-        Available Slots
+    <Box>
+      <Typography variant="h5" sx={{ fontWeight: 700, color: '#1A3C5A' }}>
+        Availability
       </Typography>
-      <Box
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        Your bookable slots are 30 minutes each, from 08:00 to 17:00. Times with an
+        active appointment are hidden automatically.
+      </Typography>
+
+      <Paper
+        elevation={0}
         sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 2,
+          p: { xs: 2.5, md: 3 },
+          borderRadius: '16px',
+          border: '1px solid #E6EEF5',
           mb: 3,
-          maxWidth: '800px',
-          mx: 'auto',
-          p: { xs: 2, md: 3 },
-          backgroundColor: '#fff',
-          borderRadius: '12px',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
         }}
       >
-        <Typography
-          variant="body1"
+        <Box
           sx={{
-            fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1.1rem' },
-            color: '#4A6B8A',
-            lineHeight: 1.6,
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: 2,
+            alignItems: { xs: 'stretch', sm: 'flex-end' },
           }}
         >
-          Doctor ID: {doctorId || 'Not available'}
-        </Typography>
-        <TextField
-          label="Date"
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          variant="outlined"
-          fullWidth
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              borderRadius: '8px',
-              '& fieldset': { borderColor: '#1A3C5A' },
-              '&:hover fieldset': { borderColor: '#00ACC1' },
-            },
-            '& .MuiInputLabel-root': {
-              color: '#1A3C5A',
-              fontSize: { xs: '0.85rem', md: '1rem' },
-            },
-          }}
-          aria-label="Select date for available slots"
-        />
-        <Button
-          variant="contained"
-          onClick={handleFetchSlots}
-          disabled={!doctorId || !date}
-          sx={{
-            backgroundColor: '#00ACC1',
-            color: '#fff',
-            fontSize: { xs: '0.85rem', md: '1rem' },
-            fontWeight: 600,
-            textTransform: 'none',
-            px: 3,
-            py: 1.5,
-            borderRadius: '8px',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-            '&:hover': {
-              backgroundColor: '#0097A7',
-              transform: 'translateY(-2px)',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-            },
-            '&:disabled': {
-              backgroundColor: 'rgba(0, 172, 193, 0.5)',
-              color: '#fff',
-            },
-          }}
-          aria-label="Fetch available slots"
-        >
-          Show Slots
-        </Button>
-      </Box>
-      {error && (
-        <Typography
-          variant="body1"
-          sx={{
-            color: '#d32f2f',
-            fontSize: { xs: '0.85rem', md: '1.1rem' },
-            mb: 2,
-            textAlign: 'center',
-          }}
-          aria-label="Error message"
-        >
-          {error}
-        </Typography>
-      )}
-      {slots.length > 0 ? (
-        <List
-          sx={{
-            maxWidth: '800px',
-            mx: 'auto',
-            backgroundColor: '#fff',
-            borderRadius: '12px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-            p: 2,
-          }}
-        >
-          {slots.map((slot, index) => (
-            <ListItem
-              key={index}
+          <TextField
+            label="Date"
+            type="date"
+            value={date}
+            onChange={(event) => setDate(event.target.value)}
+            InputLabelProps={{ shrink: true }}
+            inputProps={{ min: minDate }}
+            sx={{ maxWidth: { sm: 260 }, width: '100%' }}
+          />
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Button
+              variant={date === todayISO() ? 'contained' : 'outlined'}
+              onClick={() => setDate(todayISO())}
               sx={{
-                borderRadius: '8px',
+                textTransform: 'none',
+                backgroundColor: date === todayISO() ? '#00ACC1' : undefined,
                 '&:hover': {
-                  backgroundColor: '#f0f4f8',
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                  backgroundColor:
+                    date === todayISO() ? '#0097A7' : 'rgba(0, 172, 193, 0.08)',
                 },
               }}
-              role="article"
-              aria-label={`Slot from ${slot.startTime} to ${slot.endTime}`}
             >
-              <ListItemText
-                primary={`From ${slot.startTime} to ${slot.endTime}`}
-                primaryTypographyProps={{
-                  fontSize: { xs: '0.9rem', md: '1rem' },
-                  fontWeight: 600,
-                  color: '#1A3C5A',
-                }}
-              />
-            </ListItem>
-          ))}
-        </List>
-      ) : (
-        date &&
-        doctorId &&
-        !error && (
-          <Typography
-            variant="body1"
+              Today
+            </Button>
+            <Button
+              variant={date === tomorrowISO() ? 'contained' : 'outlined'}
+              onClick={() => setDate(tomorrowISO())}
+              sx={{
+                textTransform: 'none',
+                backgroundColor: date === tomorrowISO() ? '#00ACC1' : undefined,
+                '&:hover': {
+                  backgroundColor:
+                    date === tomorrowISO() ? '#0097A7' : 'rgba(0, 172, 193, 0.08)',
+                },
+              }}
+            >
+              Tomorrow
+            </Button>
+          </Box>
+        </Box>
+      </Paper>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+
+      {loading ? (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 5 }}>
+          <CircularProgress size={22} />
+          <Typography color="text.secondary">Checking availability…</Typography>
+        </Box>
+      ) : loadedFor ? (
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 2.5, md: 3 },
+            borderRadius: '16px',
+            border: '1px solid #E6EEF5',
+          }}
+        >
+          <Box
             sx={{
-              fontSize: { xs: '0.85rem', md: '1.1rem' },
-              color: '#4A6B8A',
-              textAlign: 'center',
-              mt: 2,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              flexWrap: 'wrap',
+              mb: 2,
             }}
           >
-            No slots available for this date
-          </Typography>
-        )
+            <EventAvailableIcon sx={{ color: '#00ACC1' }} />
+            <Typography sx={{ fontWeight: 700, color: '#1A3C5A' }}>
+              {formatDate(loadedFor)}
+            </Typography>
+            <Chip
+              size="small"
+              label={`${slots.length} open ${slots.length === 1 ? 'slot' : 'slots'}`}
+              sx={{ backgroundColor: '#E0F7FA', color: '#00707E', fontWeight: 600 }}
+            />
+          </Box>
+
+          {slots.length === 0 ? (
+            <Alert severity="info">
+              No open slots on this day. Every time may already be booked, or the day
+              may be in the past.
+            </Alert>
+          ) : (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {slots.map((slot) => {
+                const start = typeof slot === 'string' ? slot : slot.startTime;
+                const end = typeof slot === 'string' ? '' : slot.endTime;
+                return (
+                  <Chip
+                    key={`${start}-${end}`}
+                    label={end ? `${start} – ${end}` : start}
+                    sx={{
+                      backgroundColor: '#F0F7F8',
+                      color: '#1A3C5A',
+                      fontWeight: 600,
+                      py: 2,
+                    }}
+                  />
+                );
+              })}
+            </Box>
+          )}
+        </Paper>
+      ) : (
+        <Alert severity="info">Pick a date to see your open slots.</Alert>
       )}
     </Box>
   );

@@ -24,7 +24,7 @@ const SatisfiedPatientsSection = () => {
   return (
     <Box
       sx={{
-        width: '100vw',
+        width: '100%',
         minHeight: '400px',
         py: 8,
         backgroundImage:

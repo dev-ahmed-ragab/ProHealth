@@ -1,184 +1,118 @@
 import { useState } from 'react';
-import axios from 'axios';
-import { TextField, Button, Box, Typography, Alert } from '@mui/material';
 import { Link } from 'react-router-dom';
-import EmailIcon from '@mui/icons-material/Email';
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Paper,
+  TextField,
+  Typography,
+} from '@mui/material';
+import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
+import { useAuth } from '../context/AuthContext';
+
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const ForgotPasswordPage = () => {
+  const { forgotPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
+    setMessage('');
+
+    if (!emailPattern.test(email.trim())) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    setSubmitting(true);
     try {
-      await axios.post('/api/auth/forgot-password', { email });
-      setMessage('Password reset instructions sent to your email');
-      setError('');
+      const response = await forgotPassword(email);
+      setMessage(response);
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to send reset instructions');
-      setMessage('');
+      setError(err.message || 'Could not send reset instructions.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <Box
       sx={{
-        maxWidth: '1400px',
-        mx: 'auto',
-        py: { xs: 6, md: 8 },
-        px: { xs: 2, sm: 3, md: 4 },
+        minHeight: 'calc(100vh - 64px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        px: 2,
+        py: 6,
       }}
     >
-      <Box
+      <Paper
+        elevation={0}
         sx={{
-          maxWidth: '800px',
-          mx: 'auto',
-          p: { xs: 3, md: 4 },
-          backgroundColor: '#fff',
-          borderRadius: '12px',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+          width: '100%',
+          maxWidth: 460,
+          p: { xs: 3, md: 4.5 },
+          borderRadius: '16px',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.08)',
         }}
-        role="form"
-        aria-label="Forgot Password Form"
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-          <Box
-            sx={{
-              width: '52px',
-              height: '52px',
-              backgroundColor: '#00ACC1',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mr: 2,
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-            }}
-          >
-            <EmailIcon sx={{ fontSize: 28, color: '#fff' }} />
-          </Box>
-          <Typography
-            variant="h3"
-            sx={{
-              fontSize: { xs: '1.8rem', sm: '2.2rem', md: '3rem' },
-              fontWeight: 700,
-              color: '#005C97',
-              lineHeight: 1.3,
-              letterSpacing: '-0.5px',
-            }}
-          >
-            Forgot Password
-          </Typography>
-        </Box>
+        <EmailOutlinedIcon sx={{ fontSize: 44, color: '#00ACC1', mb: 1 }} />
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 700, color: '#1A3C5A', mb: 0.5 }}>
+          Forgot password?
+        </Typography>
+        <Typography color="text.secondary" sx={{ mb: 3 }}>
+          Enter your email and we will send you a link to reset your password.
+        </Typography>
 
-        {(error || message) && (
-          <Alert
-            severity={error ? 'error' : 'success'}
-            sx={{
-              my: 2,
-              background: 'linear-gradient(145deg, #ffffff, #f0f4f8)',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-              borderRadius: '12px',
-              color: '#1A3C5A',
-            }}
-          >
-            {error || message}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+            {error}
           </Alert>
         )}
+        {message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
 
-        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Box
-              sx={{
-                width: '52px',
-                height: '52px',
-                backgroundColor: '#00ACC1',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mr: 2,
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-              }}
-            >
-              <EmailIcon sx={{ fontSize: 28, color: '#fff' }} />
-            </Box>
-            <TextField
-              label="Email"
-              type="email"
-              fullWidth
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              variant="outlined"
-              sx={{
-                borderRadius: '8px',
-                '.MuiInputLabel-root': { color: '#1A3C5A' },
-                '.MuiOutlinedInput-notchedOutline': { borderColor: '#1A3C5A' },
-                '&:hover .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#00ACC1',
-                },
-              }}
-              required
-              aria-label="Email Address"
-              error={!!error && !message}
-              helperText={
-                error && !message ? 'Please enter a valid email address' : ''
-              }
-            />
-          </Box>
+        <Box component="form" onSubmit={handleSubmit} noValidate>
+          <TextField
+            label="Email"
+            type="email"
+            fullWidth
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+            required
+          />
           <Button
             type="submit"
             variant="contained"
             fullWidth
+            size="large"
+            disabled={submitting}
             sx={{
-              mt: 4,
+              mt: 2.5,
+              py: 1.3,
               backgroundColor: '#00ACC1',
-              color: '#fff',
-              fontSize: { xs: '0.9rem', md: '1rem' },
-              fontWeight: 600,
-              px: 3,
-              py: 1.5,
-              borderRadius: '8px',
               textTransform: 'none',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-              '&:hover': {
-                backgroundColor: '#0097A7',
-                transform: 'translateY(-2px)',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-              },
+              fontWeight: 600,
+              '&:hover': { backgroundColor: '#0097A7' },
             }}
-            aria-label="Send Reset Instructions"
           >
-            Send Reset Instructions
+            {submitting ? <CircularProgress size={24} color="inherit" /> : 'Send reset link'}
           </Button>
-          <Typography
-            variant="body2"
-            sx={{
-              mt: 2,
-              color: '#4A6B8A',
-              fontSize: '0.9rem',
-              lineHeight: 1.5,
-              textAlign: 'center',
-            }}
-          >
-            <Link
-              to="/login"
-              style={{
-                color: '#1A3C5A',
-                textDecoration: 'none',
-                fontWeight: 600,
-              }}
-              onMouseOver={(e) => (e.target.style.color = '#00ACC1')}
-              onMouseOut={(e) => (e.target.style.color = '#1A3C5A')}
-              aria-label="Back to Login"
-            >
-              Back to Login
-            </Link>
-          </Typography>
         </Box>
-      </Box>
+
+        <Typography variant="body2" sx={{ mt: 3, textAlign: 'center' }}>
+          <Button component={Link} to="/login" size="small" sx={{ textTransform: 'none' }}>
+            Back to sign in
+          </Button>
+        </Typography>
+      </Paper>
     </Box>
   );
 };

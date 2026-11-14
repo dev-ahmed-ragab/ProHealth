@@ -8,22 +8,19 @@ const HomeSection = () => {
     <Box
       sx={{
         position: 'relative',
-        width: '100vw',
-        height: '100vh', // ارتفاع الشاشة بالكامل
-        minHeight: '600px', // الحد الأدنى للارتفاع
+        width: '100%',
+        height: '100vh',
+        minHeight: '600px',
         backgroundImage: 'url("/images/image-1.png")',
-        backgroundSize: 'auto 90%', // الصورة بارتفاع 90% من الشاشة، العرض يتكيف تلقائيًا
-        backgroundPosition: 'bottom right', // الصورة في أسفل يمين الشاشة
-        backgroundRepeat: 'no-repeat', // بدون تكرار
+        backgroundSize: 'auto 90%',
+        backgroundPosition: 'bottom right',
+        backgroundRepeat: 'no-repeat',
         display: 'flex',
-        alignItems: 'flex-end', // المحتوى في الأسفل
-        justifyContent: 'flex-end', // المحتوى على اليمين
+        alignItems: 'center',
+        justifyContent: 'flex-start',
         color: '#fff',
-        marginLeft: 'calc(-50vw + 50%)', // توسيط العنصر أفقيًا
-        marginTop: '-64px', // تعديل الموضع العمودي
-        paddingTop: '64px', // المساحة العلوية
-        paddingRight: '16px', // حشوة على اليمين لتحسين المظهر
-        boxSizing: 'border-box', // التأكد من أن الحشوة لا تؤثر على الأبعاد
+        paddingTop: { xs: '64px', md: '72px' },
+        boxSizing: 'border-box',
         '&::before': {
           content: '""',
           position: 'absolute',

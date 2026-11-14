@@ -1,40 +1,74 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, Link, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
+  Alert,
   Avatar,
+  Box,
   Button,
-  Stack,
+  Chip,
+  CircularProgress,
   Dialog,
-  DialogTitle,
+  DialogActions,
   DialogContent,
   DialogContentText,
-  DialogActions,
-  TextField,
+  DialogTitle,
+  Divider,
   IconButton,
-  CircularProgress,
-  Alert,
+  Paper,
+  TextField,
+  Typography,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import LogoutIcon from '@mui/icons-material/Logout';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import EventIcon from '@mui/icons-material/Event';
+import LockResetIcon from '@mui/icons-material/LockReset';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
+import api, { getErrorMessage } from '../api';
+
+const roleLabel = (role = '') =>
+  role ? role.charAt(0).toUpperCase() + role.slice(1) : 'Patient';
+
+const roleHome = (role) => {
+  if (role === 'admin') {
+    return { label: 'Admin dashboard', path: '/admin-dashboard' };
+  }
+  if (role === 'doctor') {
+    return { label: 'Doctor dashboard', path: '/doctor-dashboard' };
+  }
+  return { label: 'My appointments', path: '/my-appointments' };
+};
 
 const ProfilePage = () => {
   const { id } = useParams();
-  const { user: logout, token } = useAuth();
-  const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [profilePicture, setProfilePicture] = useState('');
+  const {
+    user: authUser,
+    updateUser,
+    updateProfilePicture,
+    deleteAccount,
+    logout,
+  } = useAuth();
+
+  const authId = authUser?.id || authUser?._id;
+  const isOwnProfile = Boolean(authId && id === authId);
+
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -42,618 +76,467 @@ const ProfilePage = () => {
     bio: '',
   });
 
-  const updateUser = async (userData) => {
-    try {
-      const response = await axios.put(`/api/users/${id}`, userData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const updatedUser = response.data.user || response.data;
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      return { success: true, msg: 'Profile updated successfully' };
-    } catch (err) {
-      if (err.response?.status === 401) {
-        logout();
-        navigate('/login');
-      }
-      throw err.response?.data?.msg || 'Failed to update profile';
-    }
-  };
+  const applyProfile = useCallback((nextProfile) => {
+    setProfile(nextProfile);
+    setFormData({
+      name: nextProfile.name || '',
+      email: nextProfile.email || '',
+      phone: nextProfile.phone || '',
+      bio: nextProfile.bio || '',
+    });
+  }, []);
 
-  const updateProfilePicture = async (file) => {
+  const loadProfile = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
     try {
-      if (!file || !['image/jpeg', 'image/png'].includes(file.type)) {
-        throw new Error('Please upload a valid image (JPEG or PNG)');
-      }
-      const formData = new FormData();
-      formData.append('profilePicture', file);
-
-      const response = await axios.post(
-        `/api/users/${id}/profile-picture`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
-      const updatedUser = {
-        ...user,
-        profilePicture: response.data.profilePicture,
-        hasProfilePicture: response.data.hasProfilePicture,
-      };
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      return {
-        success: true,
-        msg: 'Profile picture updated successfully',
-        profilePicture: response.data.profilePicture,
-      };
+      const response = await api.get(`/api/users/${id}`);
+      applyProfile(response.data?.user || response.data);
+      setError('');
     } catch (err) {
-      console.error('Upload error:', err);
-      throw (
-        err.response?.data?.msg ||
-        err.message ||
-        'Failed to update profile picture'
-      );
+      setError(getErrorMessage(err, 'Could not load this profile.'));
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const deleteAccount = async () => {
-    try {
-      await axios.delete(`/api/users/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      logout();
-      return { success: true, msg: 'Account deleted successfully' };
-    } catch (err) {
-      throw err.response?.data?.msg || 'Failed to delete account';
-    }
-  };
+  }, [applyProfile, id]);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('Please log in to view the profile');
-        navigate('/login');
-        return;
-      }
-      try {
-        const response = await axios.get(`/api/users/${id}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const data = response.data;
-        setUser(data);
-        setProfilePicture(data.profilePicture || '');
-        setFormData({
-          name: data.name || '',
-          email: data.email || '',
-          phone: data.phone || '',
-          bio: data.bio || '',
-        });
-      } catch (error) {
-        console.error('Error fetching user:', error);
-        setError(
-          error.response?.data?.msg ||
-            'Failed to fetch user data. Please try again later.'
-        );
-        if (error.response?.status === 401) {
-          logout();
-          navigate('/login');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      fetchUser();
-    }
-  }, [id, navigate, logout]);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+    loadProfile();
+  }, [loadProfile]);
 
   const handleFileChange = async (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setLoading(true);
-      try {
-        const result = await updateProfilePicture(file);
-        if (result.success) {
-          setProfilePicture(result.profilePicture);
-          setUser((prev) => ({
-            ...prev,
-            profilePicture: result.profilePicture,
-            hasProfilePicture: true,
-          }));
-        }
-      } catch (err) {
-        console.error('Upload error:', err);
-        setError(
-          err.message ||
-            'An error occurred while uploading the profile picture.'
-        );
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
 
-  const handleEditOpen = () => setEditOpen(true);
-  const handleEditClose = () => {
-    setEditOpen(false);
+    setSaving(true);
     setError('');
-  };
-
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+    setSuccess('');
     try {
-      const result = await updateUser(formData);
-      if (result.success) {
-        setUser((prev) => ({
-          ...prev,
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          bio: formData.bio,
-        }));
-        handleEditClose();
-      }
+      await updateProfilePicture(file);
+      await loadProfile();
+      setSuccess('Profile picture updated.');
     } catch (err) {
-      console.error('Update error:', err);
-      setError(err.message || 'An error occurred while updating the profile');
-      if (err.response?.status === 401) {
-        logout();
-        navigate('/login');
-      }
+      setError(err.message || 'Could not upload the picture.');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  const handleDeleteOpen = () => setDeleteOpen(true);
-  const handleDeleteClose = () => {
-    setDeleteOpen(false);
+  const handleEditSubmit = async (event) => {
+    event.preventDefault();
+    setSaving(true);
     setError('');
+    setSuccess('');
+    try {
+      await updateUser(formData);
+      await loadProfile();
+      setEditOpen(false);
+      setSuccess('Profile updated successfully.');
+    } catch (err) {
+      setError(err.message || 'Could not update the profile.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDeleteConfirm = async () => {
-    setLoading(true);
+  const handlePasswordSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (passwordForm.newPassword.length < 8) {
+      setError('The new password must be at least 8 characters.');
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setError('The new passwords do not match.');
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      await api.post(`/api/users/${id}/password`, {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
+      setPasswordOpen(false);
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+      setSuccess('Password updated successfully.');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Could not change the password.'));
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setSaving(true);
+    setError('');
     try {
       await deleteAccount();
-      navigate('/login');
     } catch (err) {
-      console.error('Delete error:', err);
-      setError(err.message || 'An error occurred while deleting the account.');
-    } finally {
-      setLoading(false);
+      setError(err.message || 'Could not delete the account.');
+      setSaving(false);
     }
   };
 
   if (loading) {
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-      >
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 12 }}>
         <CircularProgress />
       </Box>
     );
   }
 
-  if (!user) {
+  if (!profile) {
     return (
-      <Box sx={{ maxWidth: 600, mx: 'auto', mt: 4, p: 2 }}>
-        <Alert severity="error">{error || 'Unable to load user data'}</Alert>
+      <Box sx={{ maxWidth: 640, mx: 'auto', px: 2, py: 8 }}>
+        <Alert severity="error">{error || 'Profile not found.'}</Alert>
       </Box>
     );
   }
 
+  const home = roleHome(profile.role);
+
   return (
-    <Box
-      sx={{
-        width: '100%',
-        minHeight: '100vh',
-        px: { xs: 2, sm: 3, md: 4 },
-        py: 0,
-      }}
-    >
-      <Box
+    <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 2, md: 3 }, pt: { xs: 11, md: 13 }, pb: { xs: 6, md: 8 } }}>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+          {success}
+        </Alert>
+      )}
+
+      <Paper
+        elevation={0}
         sx={{
-          width: '100vw',
-          position: 'relative',
-          left: '50%',
-          right: '50%',
-          marginLeft: '-50vw',
-          marginRight: '-50vw',
-          height: '25vh',
-          background: 'linear-gradient(45deg, #88DADE, #0097A7, #F1F4F8, #005C97)',
-          backgroundSize: '400% 400%',
-          animation: 'randomGradientAnimation 12s ease-in-out infinite',
-          borderRadius: '12px 12px 0 0',
-          top: 0,
+          p: { xs: 3, md: 4 },
+          borderRadius: '16px',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.08)',
         }}
       >
-        <style>
-          {`
-            @keyframes randomGradientAnimation {
-              0% { background-position: 0% 50%; }
-              20% { background-position: 80% 30%; }
-              40% { background-position: 20% 70%; }
-              60% { background-position: 90% 40%; }
-              80% { background-position: 30% 60%; }
-              100% { background-position: 0% 50%; }
-            }
-          `}
-        </style>
         <Box
           sx={{
-            maxWidth: '1400px',
-            mx: 'auto',
-            position: 'relative',
-            bottom: -50,
             display: 'flex',
-            alignItems: 'flex-end',
-            px: { xs: 2, sm: 3, md: 4 },
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: 3,
+            alignItems: { xs: 'center', sm: 'flex-start' },
+            textAlign: { xs: 'center', sm: 'left' },
           }}
         >
-          <Box sx={{ position: 'relative' }}>
+          <Box sx={{ position: 'relative', flexShrink: 0 }}>
             <Avatar
-              src={profilePicture || undefined}
-              sx={{
-                width: 100,
-                height: 100,
-                borderRadius: '12px',
-                border: '2px solid #fff',
-              }}
-            />
-            <IconButton
-              component="label"
-              sx={{
-                backgroundColor: '#FF5722',
-                color: '#fff',
-                '&:hover': { backgroundColor: '#E64A19' },
-                borderRadius: '50%',
-                p: 0.5,
-                position: 'absolute',
-                bottom: 0,
-                right: 0,
-              }}
-              aria-label="Upload profile picture"
+              src={profile.profilePicture || undefined}
+              alt={profile.name}
+              sx={{ width: 110, height: 110, bgcolor: '#00ACC1', fontSize: 40 }}
             >
-              <input
-                type="file"
-                hidden
-                accept="image/jpeg,image/png"
-                onChange={handleFileChange}
-              />
-              <PhotoCameraIcon fontSize="small" />
-            </IconButton>
+              {profile.name?.charAt(0)?.toUpperCase()}
+            </Avatar>
+            {isOwnProfile && (
+              <IconButton
+                component="label"
+                aria-label="Upload profile picture"
+                disabled={saving}
+                sx={{
+                  position: 'absolute',
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: '#00ACC1',
+                  color: '#fff',
+                  border: '2px solid #fff',
+                  '&:hover': { backgroundColor: '#0097A7' },
+                }}
+              >
+                <input
+                  type="file"
+                  hidden
+                  accept="image/jpeg,image/png"
+                  onChange={handleFileChange}
+                />
+                <PhotoCameraIcon fontSize="small" />
+              </IconButton>
+            )}
           </Box>
-          <Typography
-            variant="h3"
-            sx={{
-              fontSize: { xs: '1.5rem', sm: '1.8rem', md: '2.5rem' },
-              fontWeight: 700,
-              color: '#F1F4F8',
-              ml: 2,
-            }}
-          >
-            {user.name || 'Not available'}
-          </Typography>
-        </Box>
-      </Box>
-      <Card
-        sx={{
-          maxWidth: '1400px',
-          mx: 'auto',
-          mt: 10,
-          p: { xs: 2, md: 3 },
-          backgroundColor: '#F5F7FA',
-          borderRadius: '0 0 12px 12px',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-        }}
-      >
-        <CardContent>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          <Box sx={{ p: 2, borderRadius: '8px' }}>
-            <Typography
-              variant="body1"
-              gutterBottom
-              sx={{ fontSize: { xs: '0.85rem', md: '1rem' } }}
-            >
-              <strong style={{ color: '#1A3C5A' }}>Email:</strong>{' '}
-              {user.email || 'Not available'}
-            </Typography>
-            <Typography
-              variant="body1"
-              gutterBottom
-              sx={{ fontSize: { xs: '0.85rem', md: '1rem' } }}
-            >
-              <strong style={{ color: '#1A3C5A' }}>Phone:</strong>{' '}
-              {user.phone || 'Not available'}
-            </Typography>
-            <Typography
-              variant="body1"
-              gutterBottom
-              sx={{ fontSize: { xs: '0.85rem', md: '1rem' } }}
-            >
-              <strong style={{ color: '#1A3C5A' }}>Bio:</strong>{' '}
-              {user.bio || 'Not available'}
-            </Typography>
-            <Typography
-              variant="body1"
-              gutterBottom
-              sx={{ fontSize: { xs: '0.85rem', md: '1rem' } }}
-            >
-              <strong style={{ color: '#1A3C5A' }}>Role:</strong>{' '}
-              {user.role
-                ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
-                : 'Not available'}
-            </Typography>
-          </Box>
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-              gap: 2,
-              mt: 4,
-            }}
-          >
-            <Button
-              variant="contained"
-              onClick={handleEditOpen}
-              startIcon={<EditIcon />}
-              sx={{
-                backgroundColor: '#00ACC1',
-                color: '#fff',
-                fontSize: { xs: '0.85rem', md: '1rem' },
-                fontWeight: 600,
-                textTransform: 'none',
-                px: 3,
-                py: 1.5,
-                borderRadius: '8px',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                '&:hover': {
-                  backgroundColor: '#0097A7',
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-                },
-              }}
-              aria-label="Edit profile"
-            >
-              Edit Profile
-            </Button>
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={handleDeleteOpen}
-              startIcon={<DeleteIcon />}
-              sx={{
-                borderColor: '#d32f2f',
-                color: '#d32f2f',
-                fontSize: { xs: '0.85rem', md: '1rem' },
-                fontWeight: 600,
-                textTransform: 'none',
-                px: 3,
-                py: 1.5,
-                borderRadius: '8px',
-                '&:hover': {
-                  backgroundColor: '#ffebee',
-                  borderColor: '#b71c1c',
-                  color: '#b71c1c',
-                },
-              }}
-              aria-label="Delete account"
-            >
-              Delete Account
-            </Button>
-            <Button
-              variant="outlined"
-              component={Link}
-              to="/doctor-dashboard/appointments"
-              sx={{
-                borderColor: '#1A3C5A',
-                color: '#1A3C5A',
-                fontSize: { xs: '0.85rem', md: '1rem' },
-                fontWeight: 600,
-                textTransform: 'none',
-                px: 3,
-                py: 1.5,
-                borderRadius: '8px',
-                '&:hover': {
-                  backgroundColor: '#f0f4f8',
-                  borderColor: '#005C97',
-                  color: '#005C97',
-                },
-              }}
-              aria-label="View my appointments"
-            >
-              My Appointments
-            </Button>
-            <Button
-              variant="outlined"
-              onClick={handleLogout}
-              startIcon={<LogoutIcon />}
-              sx={{
-                borderColor: '#1A3C5A',
-                color: '#1A3C5A',
-                fontSize: { xs: '0.85rem', md: '1rem' },
-                fontWeight: 600,
-                textTransform: 'none',
-                px: 3,
-                py: 1.5,
-                borderRadius: '8px',
-                '&:hover': {
-                  backgroundColor: '#f0f4f8',
-                  borderColor: '#005C97',
-                  color: '#005C97',
-                },
-              }}
-              aria-label="Log out"
-            >
-              Log Out
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
 
-      <Dialog open={editOpen} onClose={handleEditClose}>
-        <DialogTitle>Edit Profile</DialogTitle>
-        <DialogContent>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          <form id="edit-form" onSubmit={handleEditSubmit}>
-            <TextField
-              name="name"
-              label="Name"
-              type="text"
-              fullWidth
-              value={formData.name}
-              onChange={handleInputChange}
-              required
-              margin="normal"
-              variant="outlined"
+          <Box sx={{ flex: 1 }}>
+            <Box
               sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '8px',
-                  '& fieldset': { borderColor: '#1A3C5A' },
-                  '&:hover fieldset': { borderColor: '#00ACC1' },
-                },
-                '& .MuiInputLabel-root': {
-                  color: '#1A3C5A',
-                  fontSize: { xs: '0.85rem', md: '1rem' },
-                },
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                flexWrap: 'wrap',
+                justifyContent: { xs: 'center', sm: 'flex-start' },
               }}
-              aria-label="Enter name"
+            >
+              <Typography variant="h4" sx={{ fontWeight: 700, color: '#1A3C5A' }}>
+                {profile.name}
+              </Typography>
+              <Chip
+                size="small"
+                label={roleLabel(profile.role)}
+                sx={{ backgroundColor: '#E0F7FA', color: '#00707E', fontWeight: 600 }}
+              />
+              {profile.isVerified && (
+                <Chip size="small" label="Verified" color="success" variant="outlined" />
+              )}
+            </Box>
+            <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+              {profile.email}
+            </Typography>
+            {profile.role === 'doctor' && (
+              <Typography sx={{ color: '#00ACC1', fontWeight: 600, mt: 0.5 }}>
+                {profile.specialty
+                  ? profile.specialty.charAt(0).toUpperCase() +
+                    profile.specialty.slice(1)
+                  : 'General Practitioner'}
+              </Typography>
+            )}
+          </Box>
+        </Box>
+
+        <Divider sx={{ my: 3 }} />
+
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+            gap: 2.5,
+          }}
+        >
+          <Box>
+            <Typography variant="caption" sx={{ color: '#78909C', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Phone
+            </Typography>
+            <Typography sx={{ color: '#1A3C5A' }}>
+              {profile.phone || 'Not added yet'}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" sx={{ color: '#78909C', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Member since
+            </Typography>
+            <Typography sx={{ color: '#1A3C5A' }}>
+              {profile.createdAt
+                ? new Date(profile.createdAt).toLocaleDateString()
+                : 'Unknown'}
+            </Typography>
+          </Box>
+          <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
+            <Typography variant="caption" sx={{ color: '#78909C', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Bio
+            </Typography>
+            <Typography sx={{ color: '#1A3C5A', whiteSpace: 'pre-line' }}>
+              {profile.bio || 'No bio added yet.'}
+            </Typography>
+          </Box>
+        </Box>
+
+        {isOwnProfile && (
+          <>
+            <Divider sx={{ my: 3 }} />
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+              <Button
+                variant="contained"
+                startIcon={<EditIcon />}
+                onClick={() => {
+                  setError('');
+                  setEditOpen(true);
+                }}
+                sx={{
+                  backgroundColor: '#00ACC1',
+                  textTransform: 'none',
+                  '&:hover': { backgroundColor: '#0097A7' },
+                }}
+              >
+                Edit profile
+              </Button>
+              <Button
+                variant="outlined"
+                component={Link}
+                to={home.path}
+                startIcon={<EventIcon />}
+                sx={{ textTransform: 'none' }}
+              >
+                {home.label}
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<LockResetIcon />}
+                onClick={() => setPasswordOpen(true)}
+                sx={{ textTransform: 'none' }}
+              >
+                Change password
+              </Button>
+              <Button
+                variant="text"
+                startIcon={<LogoutIcon />}
+                onClick={() => logout()}
+                sx={{ textTransform: 'none' }}
+              >
+                Log out
+              </Button>
+              <Button
+                variant="text"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={() => setDeleteOpen(true)}
+                sx={{ textTransform: 'none', ml: { sm: 'auto' } }}
+              >
+                Delete account
+              </Button>
+            </Box>
+          </>
+        )}
+      </Paper>
+
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Edit profile</DialogTitle>
+        <Box component="form" onSubmit={handleEditSubmit}>
+          <DialogContent>
+            <TextField
+              margin="dense"
+              label="Full name"
+              fullWidth
+              required
+              value={formData.name}
+              onChange={(event) =>
+                setFormData({ ...formData, name: event.target.value })
+              }
             />
             <TextField
-              name="email"
+              margin="dense"
               label="Email"
               type="email"
               fullWidth
-              value={formData.email}
-              onChange={handleInputChange}
               required
-              margin="normal"
-              variant="outlined"
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '8px',
-                  '& fieldset': { borderColor: '#1A3C5A' },
-                  '&:hover fieldset': { borderColor: '#00ACC1' },
-                },
-                '& .MuiInputLabel-root': {
-                  color: '#1A3C5A',
-                  fontSize: { xs: '0.85rem', md: '1rem' },
-                },
-              }}
-              aria-label="Enter email"
+              value={formData.email}
+              onChange={(event) =>
+                setFormData({ ...formData, email: event.target.value })
+              }
             />
             <TextField
-              name="phone"
+              margin="dense"
               label="Phone"
               type="tel"
               fullWidth
               value={formData.phone}
-              onChange={handleInputChange}
-              margin="normal"
-              variant="outlined"
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '8px',
-                  '& fieldset': { borderColor: '#1A3C5A' },
-                  '&:hover fieldset': { borderColor: '#00ACC1' },
-                },
-                '& .MuiInputLabel-root': {
-                  color: '#1A3C5A',
-                  fontSize: { xs: '0.85rem', md: '1rem' },
-                },
-              }}
-              aria-label="Enter phone number"
+              onChange={(event) =>
+                setFormData({ ...formData, phone: event.target.value })
+              }
             />
             <TextField
-              name="bio"
+              margin="dense"
               label="Bio"
-              type="text"
               fullWidth
-              value={formData.bio}
-              onChange={handleInputChange}
               multiline
-              rows={4}
-              margin="normal"
-              variant="outlined"
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '8px',
-                  '& fieldset': { borderColor: '#1A3C5A' },
-                  '&:hover fieldset': { borderColor: '#00ACC1' },
-                },
-                '& .MuiInputLabel-root': {
-                  color: '#1A3C5A',
-                  fontSize: { xs: '0.85rem', md: '1rem' },
-                },
-              }}
-              aria-label="Enter bio"
+              minRows={4}
+              value={formData.bio}
+              onChange={(event) =>
+                setFormData({
+                  ...formData,
+                  bio: event.target.value.slice(0, 500),
+                })
+              }
+              helperText={`${formData.bio.length}/500`}
             />
-          </form>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleEditClose} disabled={loading}>
-            Cancel
-          </Button>
-          <Button type="submit" form="edit-form" disabled={loading}>
-            {loading ? <CircularProgress size={24} /> : 'Save'}
-          </Button>
-        </DialogActions>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setEditOpen(false)} disabled={saving}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="contained" disabled={saving}>
+              {saving ? 'Saving…' : 'Save changes'}
+            </Button>
+          </DialogActions>
+        </Box>
       </Dialog>
 
-      <Dialog open={deleteOpen} onClose={handleDeleteClose}>
-        <DialogTitle>Confirm Deletion</DialogTitle>
+      <Dialog
+        open={passwordOpen}
+        onClose={() => setPasswordOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Change password</DialogTitle>
+        <Box component="form" onSubmit={handlePasswordSubmit}>
+          <DialogContent>
+            <TextField
+              margin="dense"
+              label="Current password"
+              type="password"
+              fullWidth
+              required
+              value={passwordForm.currentPassword}
+              onChange={(event) =>
+                setPasswordForm({
+                  ...passwordForm,
+                  currentPassword: event.target.value,
+                })
+              }
+            />
+            <TextField
+              margin="dense"
+              label="New password"
+              type="password"
+              fullWidth
+              required
+              value={passwordForm.newPassword}
+              onChange={(event) =>
+                setPasswordForm({
+                  ...passwordForm,
+                  newPassword: event.target.value,
+                })
+              }
+            />
+            <TextField
+              margin="dense"
+              label="Confirm new password"
+              type="password"
+              fullWidth
+              required
+              value={passwordForm.confirmPassword}
+              onChange={(event) =>
+                setPasswordForm({
+                  ...passwordForm,
+                  confirmPassword: event.target.value,
+                })
+              }
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setPasswordOpen(false)} disabled={passwordSaving}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="contained" disabled={passwordSaving}>
+              {passwordSaving ? 'Updating…' : 'Update password'}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+
+      <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)}>
+        <DialogTitle>Delete account?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete your account? This action cannot be
-            undone.
+            This permanently deletes your account and all related appointments.
+            This action cannot be undone.
           </DialogContentText>
-          {error && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {error}
-            </Alert>
-          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDeleteClose} disabled={loading}>
-            Cancel
+          <Button onClick={() => setDeleteOpen(false)} disabled={saving}>
+            Keep my account
           </Button>
-          <Button
-            onClick={handleDeleteConfirm}
-            disabled={loading}
-            color="error"
-          >
-            {loading ? <CircularProgress size={24} /> : 'Delete'}
+          <Button color="error" variant="contained" onClick={handleDelete} disabled={saving}>
+            {saving ? 'Deleting…' : 'Delete account'}
           </Button>
         </DialogActions>
       </Dialog>

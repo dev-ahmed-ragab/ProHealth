@@ -41,13 +41,20 @@ export const getErrorMessage = (
   fallback = 'Something went wrong. Please try again.'
 ) => {
   const data = error?.response?.data;
-  return (
-    data?.msg ||
-    data?.message ||
-    data?.errors?.[0]?.message ||
-    error?.message ||
-    fallback
-  );
+  const serverMessage =
+    data?.msg || data?.message || data?.errors?.[0]?.message || '';
+
+  if (serverMessage) return serverMessage;
+
+  if (!error?.response) {
+    return 'Cannot reach the server. Check your connection and try again.';
+  }
+
+  if (error.response.status >= 500) {
+    return 'The server ran into a problem. Please try again in a moment.';
+  }
+
+  return fallback;
 };
 
 /** API list endpoints may return `[...]` or `{ data: [...] }`. */

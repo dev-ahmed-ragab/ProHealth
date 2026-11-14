@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  Alert,
   Box,
   Grid,
   Typography,
@@ -12,6 +13,7 @@ import {
 } from '@mui/material';
 import { Phone, Email, LocationOn } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
+import api, { getErrorMessage } from '../api';
 
 const ContactUsPage = () => {
   const theme = useTheme();
@@ -25,11 +27,14 @@ const ContactUsPage = () => {
     message: '',
   });
   const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState(null);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
     setErrors({ ...errors, [name]: '' });
+    if (feedback) setFeedback(null);
   };
 
   const validateForm = () => {
@@ -43,15 +48,40 @@ const ContactUsPage = () => {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validateForm();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    // Handle form submission (e.g., API call)
-    console.log('Form submitted:', formData);
+
+    setSubmitting(true);
+    setFeedback(null);
+    try {
+      await api.post('/api/contact', {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        subject: formData.subject.trim(),
+        message: formData.message.trim(),
+      });
+      setFeedback({
+        type: 'success',
+        message: 'Thanks for reaching out. Our team will reply by email shortly.',
+      });
+      setFormData({ name: '', email: '', subject: '', message: '' });
+      setErrors({});
+    } catch (err) {
+      setFeedback({
+        type: 'error',
+        message: getErrorMessage(
+          err,
+          'We could not send your message. Please try again in a moment.'
+        ),
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -60,18 +90,16 @@ const ContactUsPage = () => {
       <Box
         sx={{
           position: 'relative',
-          width: '100vw',
-          height: '50vh',
-          minHeight: '500px',
+          width: '100%',
+          minHeight: { xs: '380px', md: '460px' },
           backgroundImage: 'url("/images/landing-parallax-1.jpg")',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           display: 'flex',
           alignItems: 'center',
           color: '#fff',
-          marginLeft: 'calc(-50vw + 50%)',
-          marginTop: '-64px',
-          paddingTop: '64px',
+          paddingTop: { xs: '64px', md: '72px' },
+          boxSizing: 'border-box',
           '&::before': {
             content: '""',
             position: 'absolute',
@@ -178,9 +206,18 @@ const ContactUsPage = () => {
 
         <Divider sx={{ mb: 4 }} />
 
-        <Stack spacing={3} component="form" onSubmit={handleSubmit}>
+        <Stack spacing={3} component="form" onSubmit={handleSubmit} noValidate>
+          {feedback && (
+            <Alert
+              severity={feedback.type}
+              onClose={() => setFeedback(null)}
+              role="status"
+            >
+              {feedback.message}
+            </Alert>
+          )}
           <Grid container spacing={3}>
-            <Grid item width={{ sm: '100%', md: '48%' }}>
+            <Grid item xs={12} md={6}>
               <TextField
                 variant="outlined"
                 label="Name"
@@ -198,11 +235,12 @@ const ContactUsPage = () => {
                 }}
               />
             </Grid>
-            <Grid item width={{ sm: '100%', md: '48%' }}>
+            <Grid item xs={12} md={6}>
               <TextField
                 variant="outlined"
                 label="Email"
                 name="email"
+                type="email"
                 value={formData.email}
                 onChange={handleInputChange}
                 fullWidth
@@ -262,6 +300,7 @@ const ContactUsPage = () => {
               type="submit"
               variant="contained"
               size="large"
+              disabled={submitting}
               aria-label="Send Message"
               sx={{
                 backgroundColor: '#00ACC1',
@@ -279,9 +318,13 @@ const ContactUsPage = () => {
                   transform: 'translateY(-2px)',
                   boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
                 },
+                '&.Mui-disabled': {
+                  backgroundColor: 'rgba(0, 172, 193, 0.5)',
+                  color: '#fff',
+                },
               }}
             >
-              Send →
+              {submitting ? 'Sending…' : 'Send →'}
             </Button>
           </Box>
         </Stack>
@@ -534,6 +577,7 @@ const ContactUsPage = () => {
               }}
             >
               <iframe
+                title="ProHealth Clinic Location"
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3621.853784851493!2d46.67527731500262!3d24.77451858408547!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e2ee3b9b9b9b9b9%3A0x9b9b9b9b9b9b9b9b!2sRiyadh%2C%20Saudi%20Arabia!5e0!3m2!1sen!2sus!4v1620000000000!5m2!1sen!2sus"
                 width="100%"
                 height="100%"

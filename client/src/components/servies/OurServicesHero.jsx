@@ -7,18 +7,16 @@ const OurServicesHero = () => {
     <Box
       sx={{
         position: 'relative',
-        width: '100vw',
-        height: '100vh',
-        minHeight: '600px',
+        width: '100%',
+        minHeight: { xs: '450px', md: '550px' },
         backgroundImage: 'url("/images/h3-img-2.jpg")',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         display: 'flex',
         alignItems: 'center',
         color: '#fff',
-        marginLeft: 'calc(-50vw + 50%)',
-        marginTop: '-64px',
-        paddingTop: '64px',
+        paddingTop: { xs: '64px', md: '72px' },
+        boxSizing: 'border-box',
         '&::before': {
           content: '""',
           position: 'absolute',

@@ -113,7 +113,7 @@ export function AuthProvider({ children }) {
   }, [persistSession]);
 
   const login = useCallback(
-    async (email, password) => {
+    async (email, password, redirectTo) => {
       try {
         const response = await api.post('/api/auth/login', {
           email: email.trim().toLowerCase(),
@@ -128,7 +128,7 @@ export function AuthProvider({ children }) {
         }
 
         persistSession(nextToken, nextUser);
-        navigate(homeForRole(nextUser.role), { replace: true });
+        navigate(redirectTo || homeForRole(nextUser.role), { replace: true });
         return nextUser;
       } catch (error) {
         throw new Error(getErrorMessage(error, 'Login failed'));
