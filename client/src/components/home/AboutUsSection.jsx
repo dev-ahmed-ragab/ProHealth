@@ -1,147 +1,185 @@
 import React from 'react';
-import { Box, Grid, Typography } from '@mui/material';
+import { Box, Grid, Typography, Button, Stack, Container } from '@mui/material';
+import { Link } from 'react-router-dom';
 import VerifiedIcon from '@mui/icons-material/Verified';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
 const AboutUsSection = () => {
   return (
     <Box
       sx={{
-        maxWidth: '1400px',
-        mx: 'auto',
-        px: { xs: 2, sm: 3, md: 4 },
-        py: { xs: 6, md: 8 },
+        width: '100%',
+        py: { xs: 8, md: 12 },
+        backgroundColor: '#ffffff',
       }}
       role="region"
       aria-label="About Us Section"
     >
-      <Grid
-        container
-        spacing={{ xs: 2, sm: 3, md: 3 }}
-        sx={{
-          flexDirection: { xs: 'column', md: 'row' },
-          alignItems: 'center',
-        }}
-      >
-        {/* Left Side: Image */}
+      <Container maxWidth="xl">
         <Grid
-          item
-          xs={12}
-          md={6}
-          sx={{ position: 'relative', mb: { xs: 4, md: 0 } }}
-          width={{ sm: '100%', md: '55%' }}
+          container
+          spacing={{ xs: 4, md: 8 }}
+          alignItems="center"
         >
-          <Box
-            component="img"
-            src="/images/download.jpg"
-            alt="Doctor with patient"
-            sx={{
-              width: '100%',
-              height: { xs: '300px', sm: '350px', md: '450px' },
-              objectFit: 'cover',
-              borderRadius: '12px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-              '&:hover': {
-                transform: 'translateY(-6px)',
-                boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)',
-              },
-            }}
-          />
-          <Box
-            sx={{
-              position: 'absolute',
-              top: { xs: '-20px', sm: '-30px', md: '-40px' },
-              right: { xs: '-10px', sm: '-15px', md: '-20px' },
-              zIndex: 10,
-            }}
-          >
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: { xs: '70px', sm: '80px', md: '90px' },
-                height: { xs: '70px', sm: '80px', md: '90px' },
-                backgroundColor: '#ffffff',
-                border: '3px solid #00ACC1',
-                borderRadius: '50%',
-                boxShadow: '0 4px 14px rgba(0, 172, 193, 0.25)',
-                animation: 'pulse 2.5s ease-in-out infinite',
-                '@keyframes pulse': {
-                  '0%': { transform: 'scale(1)' },
-                  '50%': { transform: 'scale(1.06)' },
-                  '100%': { transform: 'scale(1)' },
-                },
-              }}
-            >
-              <VerifiedIcon sx={{ color: '#00ACC1', fontSize: { xs: '1.4rem', md: '1.8rem' } }} />
-              <Typography
-                variant="caption"
+          {/* Left Side: Professional Image Composition */}
+          <Grid item xs={12} md={6}>
+            <Box sx={{ position: 'relative', maxWidth: '560px', mx: 'auto' }}>
+              <Box
+                component="img"
+                src="/images/download.jpg"
+                alt="Doctor with patient in consultation"
                 sx={{
-                  fontWeight: 800,
-                  fontSize: { xs: '0.65rem', md: '0.75rem' },
-                  color: '#1A3C5A',
-                  lineHeight: 1,
-                  mt: 0.3,
+                  width: '100%',
+                  height: { xs: '320px', sm: '420px', md: '480px' },
+                  objectFit: 'cover',
+                  borderRadius: '24px',
+                  boxShadow: '0 16px 40px rgba(0, 92, 151, 0.12)',
+                  display: 'block',
+                }}
+              />
+
+              {/* Floating Top Care Badge */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: { xs: -16, sm: -24 },
+                  right: { xs: -8, sm: -20 },
+                  backgroundColor: '#ffffff',
+                  border: '3px solid #00ACC1',
+                  borderRadius: '20px',
+                  p: { xs: 1.5, sm: 2 },
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  boxShadow: '0 12px 28px rgba(0, 172, 193, 0.2)',
                 }}
               >
-                TOP CARE
-              </Typography>
-            </Box>
-          </Box>
-        </Grid>
+                <VerifiedIcon sx={{ color: '#00ACC1', fontSize: { xs: 28, sm: 36 } }} />
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#1A3C5A', lineHeight: 1.1 }}>
+                    Certified Clinic
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#5A738E', fontWeight: 600 }}>
+                    International Standards
+                  </Typography>
+                </Box>
+              </Box>
 
-        {/* Right Side: Text Content */}
-        <Grid item xs={12} md={6} width={{ sm: '100%', md: '38%' }}>
-          <Typography
-            variant="h3"
-            sx={{
-              fontSize: { xs: '1.8rem', sm: '2.2rem', md: '3rem' },
-              fontWeight: 700,
-              lineHeight: 1.3,
-              letterSpacing: '-0.5px',
-              color: '#005C97',
-              mb: 2,
-              textAlign: { xs: 'left', md: 'left' },
-              pl: { xs: 0, md: 3 },
-            }}
-          >
-            About Us
-          </Typography>
-          <Typography
-            variant="h5"
-            sx={{
-              fontSize: { xs: '1.25rem', md: '1.5rem' },
-              fontWeight: 600,
-              color: '#1A3C5A',
-              mb: 2.5,
-              textAlign: { xs: 'left', md: 'left' },
-              pl: { xs: 0, md: 3 },
-            }}
-          >
-            PRO HEALTH
-          </Typography>
-          <Typography
-            variant="body1"
-            sx={{
-              fontSize: { xs: '0.95rem', sm: '1rem', md: '1.2rem' },
-              lineHeight: 1.6,
-              color: '#4A6B8A',
-              textAlign: { xs: 'left', md: 'left' },
-              maxWidth: { xs: '95%', md: '600px' },
-              mx: { xs: 'auto', md: 0 },
-              pl: { xs: 0, md: 3 },
-            }}
-          >
-            ProHealth is a team of experienced medical professionals dedicated
-            to providing top-quality healthcare services. We embrace a holistic
-            approach, focusing on treating the whole person, not just the
-            illness or symptoms, to ensure comprehensive care and lasting
-            wellness.
-          </Typography>
+              {/* Floating Experience Badge */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  bottom: { xs: -16, sm: -24 },
+                  left: { xs: 8, sm: -20 },
+                  backgroundColor: '#005C97',
+                  color: '#ffffff',
+                  borderRadius: '16px',
+                  px: 2.5,
+                  py: 1.5,
+                  boxShadow: '0 12px 28px rgba(0, 92, 151, 0.25)',
+                }}
+              >
+                <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1 }}>
+                  15+ Years
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#A7FFEB', fontWeight: 600 }}>
+                  Of Medical Excellence
+                </Typography>
+              </Box>
+            </Box>
+          </Grid>
+
+          {/* Right Side: Text & Key Highlights */}
+          <Grid item xs={12} md={6}>
+            <Box sx={{ maxWidth: '580px' }}>
+              <Typography
+                variant="overline"
+                sx={{
+                  fontWeight: 800,
+                  color: '#00ACC1',
+                  letterSpacing: 2,
+                  display: 'block',
+                  mb: 1,
+                }}
+              >
+                ABOUT PROHEALTH
+              </Typography>
+              
+              <Typography
+                variant="h2"
+                sx={{
+                  fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+                  fontWeight: 800,
+                  lineHeight: 1.2,
+                  letterSpacing: '-0.5px',
+                  color: '#1A3C5A',
+                  mb: 2.5,
+                }}
+              >
+                Dedicated to Patient Care & Advanced Medicine
+              </Typography>
+
+              <Typography
+                variant="body1"
+                sx={{
+                  fontSize: { xs: '1rem', md: '1.1rem' },
+                  lineHeight: 1.7,
+                  color: '#5A738E',
+                  mb: 3.5,
+                }}
+              >
+                ProHealth is a premier multidisciplinary healthcare clinic. We bring together
+                distinguished specialists, state-of-the-art diagnostic facilities, and a compassionate
+                patient-first philosophy to ensure the highest standards of physical and mental wellness.
+              </Typography>
+
+              {/* Highlight Points */}
+              <Stack spacing={2} sx={{ mb: 4 }}>
+                {[
+                  'Board-certified specialists across all major clinical disciplines',
+                  'Comprehensive electronic health records & easy appointment scheduling',
+                  'Emergency response support & preventative care consultations',
+                  'Transparent patient communication and follow-up monitoring',
+                ].map((item, idx) => (
+                  <Box key={idx} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                    <CheckCircleIcon sx={{ color: '#00ACC1', fontSize: 22, mt: 0.2, flexShrink: 0 }} />
+                    <Typography variant="body2" sx={{ color: '#1A3C5A', fontWeight: 600, fontSize: '0.95rem' }}>
+                      {item}
+                    </Typography>
+                  </Box>
+                ))}
+              </Stack>
+
+              {/* Button */}
+              <Button
+                component={Link}
+                to="/service"
+                variant="contained"
+                size="large"
+                endIcon={<ArrowForwardIcon />}
+                sx={{
+                  backgroundColor: '#005C97',
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  px: 3.5,
+                  py: 1.4,
+                  borderRadius: '12px',
+                  textTransform: 'none',
+                  boxShadow: '0 6px 18px rgba(0, 92, 151, 0.25)',
+                  '&:hover': {
+                    backgroundColor: '#004775',
+                    transform: 'translateY(-2px)',
+                  },
+                }}
+              >
+                Learn More About Our Services
+              </Button>
+            </Box>
+          </Grid>
         </Grid>
-      </Grid>
+      </Container>
     </Box>
   );
 };

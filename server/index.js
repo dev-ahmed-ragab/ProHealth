@@ -55,6 +55,21 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Ensure database connection is ready before handling API requests (critical for serverless/cold starts)
+app.use(async (req, res, next) => {
+  if (req.path === '/api/health') return next();
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('Database connection failed on request:', err.message);
+    res.status(503).json({
+      success: false,
+      message: 'Database connection is temporarily unavailable. Please try again shortly.',
+    });
+  }
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/appointments', appointmentRoutes);

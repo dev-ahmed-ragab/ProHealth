@@ -8,9 +8,9 @@ function HomePage() {
   return (
     <>
       <HomeSection />
+      <DepartmentsSection />
       <AboutUsSection />
       <ReviewsSection />
-      <DepartmentsSection />
       <FaqSection />
     </>
   );

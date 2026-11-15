@@ -183,7 +183,7 @@ const ReviewsSection = () => {
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
-              sx: { marginLeft:'auto' },
+              ml: { md: 'auto' },
             }}
             role="article"
             aria-label={`Review by ${reviews[activeIndex].name}`}

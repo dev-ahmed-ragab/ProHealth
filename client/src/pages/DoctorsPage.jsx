@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Alert,
   Box,
@@ -19,10 +19,18 @@ import api, { getErrorMessage, toList } from '../api';
 const FALLBACK_IMAGE = '/images/team-member-4.jpg';
 
 const DoctorsPage = () => {
+  const [searchParams] = useSearchParams();
+  const specialtyParam = searchParams.get('specialty') || '';
   const [doctors, setDoctors] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(specialtyParam);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (specialtyParam) {
+      setSearchTerm(specialtyParam);
+    }
+  }, [specialtyParam]);
 
   useEffect(() => {
     let cancelled = false;
