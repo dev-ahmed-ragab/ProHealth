@@ -9,6 +9,46 @@ A complete, production-ready healthcare management platform designed for clinics
 
 ---
 
+## 🔐 Default Demo Accounts & Passwords (بيانات تسجيل الدخول والحسابات التجريبية)
+
+> [!IMPORTANT]
+> For demonstration, grading, and testing purposes, use the seeded demo accounts below to immediately access the respective dashboards and test all role-based permissions:
+
+| Role / Role Title | Email / البريد الإلكتروني | Password / كلمة المرور | Permissions & Accessible Views / الصلاحيات واللوحات |
+| :--- | :--- | :--- | :--- |
+| **👑 System Administrator** | `admin@prohealth.dev` | `Admin1234` | Full access to `/admin-dashboard`, user role management, system stats & analytics |
+| **🩺 Dr. Sarah Hassan (Cardiology)** | `sarah.doctor@prohealth.dev` | `Doctor1234` | Access to `/doctor-dashboard`, cardiology schedule & appointment management |
+| **🩺 Dr. Omar Khaled (Pediatrics)** | `omar.doctor@prohealth.dev` | `Doctor1234` | Access to `/doctor-dashboard`, pediatrics slots & clinical status updates |
+| **🩺 Dr. Laila Mostafa (Dermatology)** | `laila.doctor@prohealth.dev` | `Doctor1234` | Access to `/doctor-dashboard`, dermatology patient consultations & schedule |
+| **🩺 Dr. Khaled Mansour (Neurology)** | `khaled.doctor@prohealth.dev` | `Doctor1234` | Access to `/doctor-dashboard`, neurology patient appointments & slot controls |
+| **👤 Mohamed Ali (Patient)** | `patient.test@example.com` | `Patient1234` | Access to `/my-appointments` (User Dashboard), booking history & live status |
+
+### 🔄 Reset or Seed Demo Accounts
+To populate or restore these accounts and sample appointments in the MongoDB database at any time:
+```bash
+cd server
+npm run seed
+```
+*This script cleans up test fixtures, securely hashes passwords with bcrypt, seeds verified doctor profiles with avatars, and creates upcoming appointments.*
+
+---
+
+## 🖼️ User Interface Showcase (معاينة واجهات النظام)
+
+Here is a visual overview of the core interfaces implemented in ProHealth:
+
+### 🏠 1. Home Page & Healthcare Hero Section
+*Clean, patient-centric design with instant CTA buttons, real-time trust indicators, social proof metrics, and healthcare feature highlights:*
+
+![ProHealth Home Page UI](screenshots/home-preview.jpg)
+
+### 🩺 2. Find a Doctor & Clinical Specialists Directory
+*Interactive doctor discovery with dynamic multi-specialty filtering (Cardiology, Pediatrics, Dermatology, Neurology), live search, verified physician badges, ratings, and instant booking shortcuts:*
+
+![ProHealth Find a Doctor UI](screenshots/doctors-preview.jpg)
+
+---
+
 ## 🌟 Live Deployments
 
 - **Frontend Application:** [https://pro-health-wine.vercel.app](https://pro-health-wine.vercel.app)
@@ -51,9 +91,14 @@ ProHealth/
 │   ├── middleware/             # Role authorization, file upload, request validators
 │   ├── models/                 # Mongoose schemas (User, Appointment, Slot)
 │   ├── routes/                 # Express API routes
+│   ├── scripts/                # Database seeders (seed.js)
 │   ├── utils/                  # Nodemailer email transporter
 │   ├── vercel.json             # Vercel Serverless routing configuration
 │   └── package.json
+│
+├── screenshots/                # UI showcase images referenced in documentation
+│   ├── home-preview.jpg
+│   └── doctors-preview.jpg
 └── README.md
 ```
 
@@ -75,10 +120,10 @@ npm install
 Create a `.env` file in `server/` (copy from `.env.example`):
 
 ```ini
-PORT=5000
+PORT=5001
 NODE_ENV=development
 MONGODB_URI=mongodb+srv://admin:admin@cluster0.xjgqihz.mongodb.net/prohealth?retryWrites=true&w=majority
-JWT_SECRET=VFkXDJK3hj7Rfwny451pNM2Yla8dcstobxZBHUrPevTQ0zSg
+JWT_SECRET=your-strong-jwt-secret
 JWT_EXPIRE=7d
 CLIENT_URL=http://localhost:3000
 CLIENT_URLS=http://localhost:3000,http://127.0.0.1:3000,https://pro-health-wine.vercel.app
@@ -91,15 +136,15 @@ EMAIL_PASS=your-google-app-password
 CONTACT_EMAIL=your-email@gmail.com
 APP_NAME=ProHealth
 
-CLOUDINARY_CLOUD_NAME=dn7s97ydy
-CLOUDINARY_API_KEY=661839662643331
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
 CLOUDINARY_API_SECRET=your-cloudinary-secret
 ```
 
 Start the API server:
 ```bash
 npm start
-# Server starts on http://localhost:5000
+# Server starts on http://localhost:5001
 ```
 
 ### 2. Frontend Setup
@@ -112,7 +157,7 @@ npm install
 Create a `.env` file in `client/` (copy from `.env.example`):
 
 ```ini
-REACT_APP_API_URL=http://localhost:5000
+REACT_APP_API_URL=http://localhost:5001
 ```
 
 Start the React development server:
@@ -120,29 +165,6 @@ Start the React development server:
 npm start
 # Opens http://localhost:3000 in your browser
 ```
-
----
-
-## 🔐 Default Demo Accounts
-
-For demonstration, review, and testing purposes, use the seeded accounts below:
-
-| Role | Email | Password | Permissions & Dashboard |
-| :--- | :--- | :--- | :--- |
-| **👑 System Administrator** | `admin@prohealth.dev` | `Admin1234` | Full access to `/admin-dashboard`, user role management, system stats |
-| **🩺 Dr. Sarah Hassan (Cardiology)** | `sarah.doctor@prohealth.dev` | `Doctor1234` | Access to `/doctor-dashboard`, patient appointments & schedule |
-| **🩺 Dr. Omar Khaled (Pediatrics)** | `omar.doctor@prohealth.dev` | `Doctor1234` | Access to `/doctor-dashboard`, slots & clinical status updates |
-| **🩺 Dr. Laila Mostafa (Dermatology)** | `laila.doctor@prohealth.dev` | `Doctor1234` | Access to `/doctor-dashboard`, dermatology patient consultations |
-| **🩺 Dr. Khaled Mansour (Neurology)** | `khaled.doctor@prohealth.dev` | `Doctor1234` | Access to `/doctor-dashboard`, neurology appointments |
-| **👤 Mohamed Ali (Patient)** | `patient.test@example.com` | `Patient1234` | Access to `/user-dashboard`, appointment history, booking status |
-
-### How to Seed or Reset Demo Accounts
-To populate or refresh these accounts in the database at any time:
-```bash
-cd server
-npm run seed
-```
-This script cleanly verifies database connectivity and resets all demo accounts and upcoming sample appointments.
 
 ---
 

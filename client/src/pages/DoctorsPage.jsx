@@ -41,7 +41,7 @@ const DOCTOR_AVATARS = {
 };
 
 const resolveDoctorImage = (pic, name) => {
-  const cleanName = (name || '').toLowerCase().trim();
+  const cleanName = (name || '').toLowerCase().replace(/^dr\.?\s*/i, '').trim();
   if (DOCTOR_AVATARS[cleanName]) {
     return DOCTOR_AVATARS[cleanName];
   }

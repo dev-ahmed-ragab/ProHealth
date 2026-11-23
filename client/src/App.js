@@ -101,6 +101,7 @@ function App() {
 
               <Route path="/404" element={<NotFoundPage />} />
               <Route path="/services" element={<Navigate to="/service" replace />} />
+              <Route path="/user-dashboard" element={<Navigate to="/my-appointments" replace />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Box>
