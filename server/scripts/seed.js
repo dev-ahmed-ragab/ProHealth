@@ -73,7 +73,7 @@ async function seedDatabase() {
         specialty: 'cardiology',
         phone: '+20 100 000 0002',
         bio: 'Senior Consultant Cardiologist with 14 years of experience in heart disease prevention and cardiac catheterization.',
-        profilePicture: '/images/team-member-4.jpg',
+        profilePicture: '/images/sarah-doctor.jpg',
         hasProfilePicture: true,
       },
       {
@@ -97,7 +97,7 @@ async function seedDatabase() {
         specialty: 'dermatology',
         phone: '+20 100 000 0004',
         bio: 'Board-certified Dermatologist specializing in laser treatments, clinical skincare, and modern cosmetic therapies.',
-        profilePicture: '/images/team-member-7.jpg',
+        profilePicture: '/images/laila-doctor.jpg',
         hasProfilePicture: true,
       },
       {

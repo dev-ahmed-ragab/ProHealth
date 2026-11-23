@@ -46,12 +46,54 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-app.get('/api/health', (req, res) => {
+let cachedPromise = null;
+
+const connectDB = async () => {
+  if (mongoose.connection.readyState === 1) return mongoose.connection;
+
+  if (!cachedPromise) {
+    const uri = process.env.MONGODB_URI || process.env.MONGO_URI;
+    if (!uri) {
+      throw new Error('MONGODB_URI is not configured');
+    }
+
+    cachedPromise = mongoose
+      .connect(uri, {
+        serverSelectionTimeoutMS: 10000,
+        socketTimeoutMS: 45000,
+      })
+      .then((conn) => {
+        console.log('Connected to MongoDB');
+        return conn;
+      })
+      .catch((err) => {
+        cachedPromise = null;
+        console.error('MongoDB connection error:', err.message);
+        throw err;
+      });
+  }
+
+  await cachedPromise;
+  return mongoose.connection;
+};
+
+app.get('/api/health', async (req, res) => {
+  let dbStatus = 'disconnected';
+  let dbError = null;
+  try {
+    await connectDB();
+    dbStatus =
+      mongoose.connection.readyState === 1 ? 'connected' : 'connecting';
+  } catch (err) {
+    dbStatus = 'disconnected';
+    dbError = err.message;
+  }
+
   res.json({
-    success: true,
+    success: dbStatus === 'connected',
     status: 'ok',
-    database:
-      mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    database: dbStatus,
+    error: dbError || undefined,
   });
 });
 
@@ -101,18 +143,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-const connectDB = async () => {
-  if (mongoose.connection.readyState >= 1) return mongoose.connection;
-  const uri = process.env.MONGODB_URI || process.env.MONGO_URI;
-  if (!uri) {
-    throw new Error('MONGODB_URI is not configured');
-  }
-  return mongoose.connect(uri, {
-    serverSelectionTimeoutMS: 10000,
-    socketTimeoutMS: 45000,
-  });
-};
-
+// Initial connection attempt
 connectDB()
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.error('MongoDB connection error:', err.message));

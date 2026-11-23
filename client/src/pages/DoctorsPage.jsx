@@ -7,262 +7,448 @@ import {
   Card,
   CardContent,
   CardMedia,
+  Chip,
   CircularProgress,
+  Container,
   Grid,
   InputAdornment,
+  Stack,
   TextField,
   Typography,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import api, { getErrorMessage, toList } from '../api';
+import StarIcon from '@mui/icons-material/Star';
+import VerifiedIcon from '@mui/icons-material/Verified';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import PageBanner from '../components/common/PageBanner';
+import api, { API_BASE_URL, getErrorMessage, toList } from '../api';
 
 const FALLBACK_IMAGE = '/images/team-member-4.jpg';
 
+const SPECIALTIES = [
+  'All',
+  'Cardiology',
+  'Pediatrics',
+  'Dermatology',
+  'Neurology',
+];
+
+const DOCTOR_AVATARS = {
+  'sarah hassan': '/images/sarah-doctor.jpg',
+  'laila mostafa': '/images/laila-doctor.jpg',
+  'omar khaled': '/images/team-member-5.jpg',
+  'khaled mansour': '/images/team-member-4.jpg',
+};
+
+const resolveDoctorImage = (pic, name) => {
+  const cleanName = (name || '').toLowerCase().trim();
+  if (DOCTOR_AVATARS[cleanName]) {
+    return DOCTOR_AVATARS[cleanName];
+  }
+  if (!pic) return FALLBACK_IMAGE;
+  if (pic.startsWith('http://') || pic.startsWith('https://')) return pic;
+  if (pic.startsWith('/images/')) return pic;
+  if (pic.startsWith('/uploads/')) return `${API_BASE_URL}${pic}`;
+  if (pic.startsWith('uploads/')) return `${API_BASE_URL}/${pic}`;
+  return pic;
+};
+
 const DoctorsPage = () => {
-  const [searchParams] = useSearchParams();
-  const specialtyParam = searchParams.get('specialty') || '';
+  const [searchParams, setSearchParams] = useSearchParams();
+  const specialtyParam = searchParams.get('specialty') || 'All';
   const [doctors, setDoctors] = useState([]);
-  const [searchTerm, setSearchTerm] = useState(specialtyParam);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSpecialty, setSelectedSpecialty] = useState(
+    specialtyParam.toLowerCase()
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const fetchDoctors = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await api.get('/api/users/public/doctors');
+      setDoctors(toList(response.data));
+    } catch (err) {
+      setError(getErrorMessage(err, 'Could not load doctors from server.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDoctors();
+  }, []);
+
   useEffect(() => {
     if (specialtyParam) {
-      setSearchTerm(specialtyParam);
+      setSelectedSpecialty(specialtyParam.toLowerCase());
     }
   }, [specialtyParam]);
 
-  useEffect(() => {
-    let cancelled = false;
-    const fetchDoctors = async () => {
-      try {
-        const response = await api.get('/api/users/public/doctors');
-        if (!cancelled) {
-          setDoctors(toList(response.data));
-          setError('');
-        }
-      } catch (err) {
-        if (!cancelled) setError(getErrorMessage(err, 'Could not load doctors.'));
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    fetchDoctors();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const handleSpecialtyClick = (spec) => {
+    const val = spec.toLowerCase();
+    setSelectedSpecialty(val);
+    if (val === 'all') {
+      searchParams.delete('specialty');
+    } else {
+      searchParams.set('specialty', val);
+    }
+    setSearchParams(searchParams);
+  };
 
   const filteredDoctors = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
-    if (!query) return doctors;
-    return doctors.filter(
-      (doctor) =>
-        doctor.name?.toLowerCase().includes(query) ||
-        doctor.specialty?.toLowerCase().includes(query)
-    );
-  }, [doctors, searchTerm]);
+    return doctors.filter((doc) => {
+      const matchesSearch =
+        !searchTerm.trim() ||
+        doc.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.specialty?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesSpecialty =
+        selectedSpecialty === 'all' ||
+        doc.specialty?.toLowerCase() === selectedSpecialty;
+
+      return matchesSearch && matchesSpecialty;
+    });
+  }, [doctors, searchTerm, selectedSpecialty]);
 
   return (
-    <Box sx={{ width: '100%' }}>
-      <Box
-        sx={{
-          position: 'relative',
-          width: '100%',
-          minHeight: { xs: 380, md: 460 },
-          borderRadius: '0 0 24px 24px',
-          backgroundImage: 'url("/images/services-img-1.jpg")',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          display: 'flex',
-          alignItems: 'center',
-          color: '#fff',
-          mt: '-64px',
-          pt: '64px',
-          overflow: 'hidden',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            inset: 0,
-            backgroundColor: 'rgba(0, 92, 151, 0.72)',
-          },
-        }}
-      >
+    <Box sx={{ width: '100%', minHeight: '100vh', pb: 10 }}>
+      {/* Unified Senior Medical Banner */}
+      <PageBanner
+        badge="✦ Certified Medical Specialists"
+        title="Meet Our Expert Doctors"
+        subtitle="Book appointments with top-rated, board-certified doctors across our multidisciplinary clinical departments."
+      />
+
+      <Container maxWidth="xl" sx={{ mt: -3.5, position: 'relative', zIndex: 10, px: { xs: 2.5, sm: 4, md: 6 } }}>
+        {/* Search & Filter Bar */}
         <Box
           sx={{
-            position: 'relative',
-            zIndex: 1,
-            width: '100%',
-            maxWidth: '1200px',
-            mx: 'auto',
-            px: { xs: 2, sm: 3, md: 4 },
-            py: { xs: 6, md: 8 },
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            p: { xs: 2.5, sm: 3 },
+            boxShadow: '0 8px 30px rgba(26, 60, 90, 0.08)',
+            border: '1px solid #E2E8F0',
+            mb: 5,
           }}
         >
-          <Typography
-            variant="h3"
-            component="h1"
-            sx={{
-              fontSize: { xs: '1.9rem', sm: '2.4rem', md: '3rem' },
-              fontWeight: 700,
-              color: '#fff',
-              mb: 1.5,
-            }}
-          >
-            Meet Our Expert Doctors
-          </Typography>
-          <Typography
-            variant="body1"
-            sx={{
-              fontSize: { xs: '1rem', md: '1.15rem' },
-              color: 'rgba(255,255,255,0.92)',
-              mb: 3,
-              maxWidth: 620,
-            }}
-          >
-            Find the right specialist and book an appointment in a few clicks.
-          </Typography>
-          <TextField
-            placeholder="Search by doctor name or specialty"
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            aria-label="Search doctors by name or specialty"
-            sx={{
-              maxWidth: 480,
-              width: '100%',
-              backgroundColor: '#fff',
-              borderRadius: '10px',
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '10px',
-              },
-            }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ color: '#4A6B8A' }} />
-                </InputAdornment>
-              ),
-            }}
-          />
-        </Box>
-      </Box>
+          <Grid container spacing={2.5} alignItems="center">
+            {/* Search Input */}
+            <Grid size={{ xs: 12, md: 5, lg: 4 }}>
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Search by doctor name or specialty..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: '#00ACC1' }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  backgroundColor: '#F8FAFC',
+                  borderRadius: '10px',
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '10px',
+                    '& fieldset': { borderColor: '#E2E8F0' },
+                    '&:hover fieldset': { borderColor: '#00ACC1' },
+                    '&.Mui-focused fieldset': { borderColor: '#00ACC1' },
+                  },
+                }}
+              />
+            </Grid>
 
-      <Box
-        sx={{
-          maxWidth: '1200px',
-          mx: 'auto',
-          px: { xs: 2, sm: 3, md: 4 },
-          py: { xs: 5, md: 7 },
-        }}
-      >
+            {/* Specialty Filter Chips */}
+            <Grid size={{ xs: 12, md: 7, lg: 8 }}>
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{
+                  overflowX: 'auto',
+                  py: 0.5,
+                  '&::-webkit-scrollbar': { height: 4 },
+                  '&::-webkit-scrollbar-thumb': { backgroundColor: '#CBD5E1', borderRadius: 4 },
+                }}
+              >
+                {SPECIALTIES.map((spec) => {
+                  const isSelected = selectedSpecialty === spec.toLowerCase();
+                  return (
+                    <Chip
+                      key={spec}
+                      label={spec}
+                      clickable
+                      onClick={() => handleSpecialtyClick(spec)}
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: '0.875rem',
+                        px: 1,
+                        py: 2,
+                        backgroundColor: isSelected ? '#00ACC1' : '#F1F5F9',
+                        color: isSelected ? '#FFFFFF' : '#1A3C5A',
+                        border: isSelected ? '1px solid #00ACC1' : '1px solid #E2E8F0',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          backgroundColor: isSelected ? '#0097A7' : '#E2E8F0',
+                        },
+                      }}
+                    />
+                  );
+                })}
+              </Stack>
+            </Grid>
+          </Grid>
+        </Box>
+
+        {/* Error Alert with Retry */}
         {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
+          <Box sx={{ mb: 4 }}>
+            <Alert
+              severity="error"
+              action={
+                <Button color="inherit" size="small" onClick={fetchDoctors}>
+                  Retry
+                </Button>
+              }
+              sx={{ borderRadius: '12px' }}
+            >
+              {error}
+            </Alert>
+          </Box>
         )}
 
+        {/* Loading State */}
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress />
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 12 }}>
+            <CircularProgress size={48} sx={{ color: '#00ACC1', mb: 2 }} />
+            <Typography variant="body1" sx={{ color: '#5A738E' }}>
+              Loading verified doctors...
+            </Typography>
           </Box>
         ) : filteredDoctors.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 8 }}>
-            <Typography variant="h6" sx={{ color: '#1A3C5A', mb: 1 }}>
-              No doctors found
+          /* Empty State */
+          <Box
+            sx={{
+              textAlign: 'center',
+              py: 10,
+              px: 3,
+              backgroundColor: '#ffffff',
+              borderRadius: '20px',
+              border: '1px solid #E2E8F0',
+            }}
+          >
+            <Typography variant="h5" sx={{ color: '#1A3C5A', fontWeight: 700, mb: 1 }}>
+              No Doctors Found
             </Typography>
-            <Typography color="text.secondary" sx={{ mb: 3 }}>
+            <Typography variant="body2" sx={{ color: '#5A738E', mb: 3 }}>
               {doctors.length === 0
-                ? 'There are no doctors available at the moment. Please check back soon.'
-                : 'Try a different name or specialty.'}
+                ? 'We could not find any active doctors at the moment.'
+                : 'No doctors matched your search criteria. Try a different specialty or keyword.'}
             </Typography>
-            {searchTerm && (
-              <Button onClick={() => setSearchTerm('')} variant="outlined">
-                Clear search
-              </Button>
-            )}
+            <Button
+              variant="outlined"
+              onClick={() => {
+                setSearchTerm('');
+                handleSpecialtyClick('All');
+              }}
+              sx={{
+                borderColor: '#00ACC1',
+                color: '#00ACC1',
+                borderRadius: '8px',
+                '&:hover': { borderColor: '#0097A7', backgroundColor: '#F0FBFD' },
+              }}
+            >
+              Reset Filters
+            </Button>
           </Box>
         ) : (
-          <Grid container spacing={3}>
-            {filteredDoctors.map((doctor) => (
-              <Grid item key={doctor._id} xs={12} sm={6} md={4}>
-                <Card
-                  sx={{
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    borderRadius: '14px',
-                    boxShadow: '0 6px 18px rgba(0, 0, 0, 0.08)',
-                    transition: 'transform 0.25s ease, box-shadow 0.25s ease',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: '0 12px 28px rgba(0, 0, 0, 0.12)',
-                    },
-                  }}
-                >
-                  <CardMedia
-                    component="img"
-                    height="240"
-                    image={doctor.profilePicture || FALLBACK_IMAGE}
-                    alt={`Dr. ${doctor.name}`}
-                    onError={(event) => {
-                      event.currentTarget.onerror = null;
-                      event.currentTarget.src = FALLBACK_IMAGE;
+          /* Doctors Grid - 3 Columns Desktop, 2 Columns Tablet, 1 Column Mobile */
+          <Grid container spacing={3.5}>
+            {filteredDoctors.map((doctor) => {
+              const specDisplay = doctor.specialty
+                ? doctor.specialty.charAt(0).toUpperCase() + doctor.specialty.slice(1)
+                : 'Specialist';
+
+              return (
+                <Grid key={doctor._id || doctor.id} size={{ xs: 12, sm: 6, md: 4 }}>
+                  <Card
+                    sx={{
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      borderRadius: '16px',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #E2E8F0',
+                      boxShadow: '0 4px 16px rgba(26, 60, 90, 0.06)',
+                      transition: 'transform 0.25s ease, box-shadow 0.25s ease',
+                      overflow: 'hidden',
+                      '&:hover': {
+                        transform: 'translateY(-6px)',
+                        boxShadow: '0 16px 32px rgba(26, 60, 90, 0.12)',
+                        borderColor: '#00ACC1',
+                      },
                     }}
-                    sx={{ objectFit: 'cover' }}
-                  />
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#1A3C5A' }}>
-                      Dr. {doctor.name}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ color: '#00ACC1', fontWeight: 600, mb: 1 }}
-                    >
-                      {doctor.specialty
-                        ? doctor.specialty.charAt(0).toUpperCase() +
-                          doctor.specialty.slice(1)
-                        : 'General Practitioner'}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: '#4A6B8A',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 3,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        minHeight: 60,
-                      }}
-                    >
-                      {doctor.bio || 'This doctor has not added a biography yet.'}
-                    </Typography>
-                  </CardContent>
-                  <Box sx={{ px: 2, pb: 2 }}>
-                    <Button
-                      component={Link}
-                      to={`/book-appointment/${doctor._id}`}
-                      variant="contained"
-                      fullWidth
-                      sx={{
-                        backgroundColor: '#00ACC1',
-                        color: '#fff',
-                        fontWeight: 600,
-                        py: 1.2,
-                        borderRadius: '8px',
-                        textTransform: 'none',
-                        '&:hover': { backgroundColor: '#0097A7' },
-                      }}
-                    >
-                      Book Appointment
-                    </Button>
-                  </Box>
-                </Card>
-              </Grid>
-            ))}
+                  >
+                    {/* Doctor Photo with Top-Center Alignment to Prevent Head Cropping */}
+                    <Box sx={{ position: 'relative', width: '100%', height: 280, overflow: 'hidden', backgroundColor: '#F1F5F9' }}>
+                      <CardMedia
+                        component="img"
+                        image={resolveDoctorImage(doctor.profilePicture, doctor.name)}
+                        alt={`Dr. ${doctor.name}`}
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = FALLBACK_IMAGE;
+                        }}
+                        sx={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          objectPosition: 'top center',
+                          transition: 'transform 0.4s ease',
+                          '&:hover': { transform: 'scale(1.04)' },
+                        }}
+                      />
+
+                      {/* Specialty Badge (Top-Left) */}
+                      <Chip
+                        label={specDisplay}
+                        sx={{
+                          position: 'absolute',
+                          top: 14,
+                          left: 14,
+                          backgroundColor: 'rgba(0, 172, 193, 0.92)',
+                          backdropFilter: 'blur(6px)',
+                          color: '#ffffff',
+                          fontWeight: 700,
+                          fontSize: '0.78rem',
+                          height: 28,
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                        }}
+                      />
+
+                      {/* Rating Badge (Top-Right) */}
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          top: 14,
+                          right: 14,
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                          backdropFilter: 'blur(6px)',
+                          borderRadius: '50px',
+                          px: 1.2,
+                          py: 0.3,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 0.4,
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+                        }}
+                      >
+                        <StarIcon sx={{ color: '#FFB300', fontSize: 16 }} />
+                        <Typography variant="caption" sx={{ fontWeight: 800, color: '#1A3C5A' }}>
+                          4.9
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Card Content */}
+                    <CardContent sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.5 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#1A3C5A', fontSize: '1.2rem' }}>
+                          Dr. {doctor.name}
+                        </Typography>
+                        <VerifiedIcon sx={{ color: '#00ACC1', fontSize: 20 }} />
+                      </Box>
+
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: '#00ACC1',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.5,
+                          mb: 1.5,
+                          display: 'block',
+                        }}
+                      >
+                        {specDisplay} Consultant
+                      </Typography>
+
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: '#5A738E',
+                          lineHeight: 1.6,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          minHeight: 65,
+                          mb: 2.5,
+                        }}
+                      >
+                        {doctor.bio || 'Dedicated medical professional committed to providing patient-centered care and the latest therapeutic practices.'}
+                      </Typography>
+
+                      {/* Availability status */}
+                      <Box
+                        sx={{
+                          mt: 'auto',
+                          pt: 2,
+                          borderTop: '1px solid #F1F5F9',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          mb: 2,
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                          <EventAvailableIcon sx={{ fontSize: 18, color: '#00897B' }} />
+                          <Typography variant="caption" sx={{ color: '#00897B', fontWeight: 700 }}>
+                            Available for Booking
+                          </Typography>
+                        </Box>
+                        <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600 }}>
+                          Verified Staff
+                        </Typography>
+                      </Box>
+
+                      {/* Booking CTA Button */}
+                      <Button
+                        component={Link}
+                        to={`/book-appointment/${doctor._id || doctor.id}`}
+                        variant="contained"
+                        fullWidth
+                        sx={{
+                          backgroundColor: '#00ACC1',
+                          color: '#ffffff',
+                          fontWeight: 700,
+                          py: 1.3,
+                          borderRadius: '10px',
+                          textTransform: 'none',
+                          fontSize: '0.95rem',
+                          boxShadow: '0 4px 12px rgba(0, 172, 193, 0.25)',
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            backgroundColor: '#0097A7',
+                            transform: 'translateY(-2px)',
+                            boxShadow: '0 8px 18px rgba(0, 172, 193, 0.35)',
+                          },
+                        }}
+                      >
+                        Book Appointment
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })}
           </Grid>
         )}
-      </Box>
+      </Container>
     </Box>
   );
 };

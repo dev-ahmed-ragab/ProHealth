@@ -159,7 +159,7 @@ function DoctorAppointments() {
           <Alert severity="info">No doctors are registered yet.</Alert>
         ) : (
           <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <Select
                 fullWidth
                 size="small"
@@ -177,7 +177,7 @@ function DoctorAppointments() {
                 ))}
               </Select>
             </Grid>
-            <Grid item xs={12} sm={4} md={2}>
+            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
               <Select
                 fullWidth
                 size="small"
@@ -196,7 +196,7 @@ function DoctorAppointments() {
                 ))}
               </Select>
             </Grid>
-            <Grid item xs={12} sm={4} md={3}>
+            <Grid size={{ xs: 12, sm: 4, md: 3 }}>
               <TextField
                 fullWidth
                 size="small"
@@ -208,7 +208,7 @@ function DoctorAppointments() {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-            <Grid item xs={12} sm={4} md={3}>
+            <Grid size={{ xs: 12, sm: 4, md: 3 }}>
               <TextField
                 fullWidth
                 size="small"

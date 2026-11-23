@@ -72,9 +72,9 @@ const Footer = () => {
           px: { xs: 2, sm: 3, md: 4 },
         }}
       >
-        <Grid container spacing={{ xs: 2, sm: 3, md: 3 }}>
+        <Grid container spacing={{ xs: 3, md: 4 }}>
           {/* Newsletter Subscription */}
-          <Grid item xs={12} md={5}>
+          <Grid size={{ xs: 12, md: 5 }}>
             <Typography
               variant="h5"
               sx={{
@@ -106,7 +106,7 @@ const Footer = () => {
               onSubmit={handleSubmit}
             >
               <Grid container spacing={2}>
-                <Grid item xs={8}>
+                <Grid size={{ xs: 8 }}>
                   <TextField
                     fullWidth
                     size="small"
@@ -137,7 +137,7 @@ const Footer = () => {
                     }}
                   />
                 </Grid>
-                <Grid item xs={4}>
+                <Grid size={{ xs: 4 }}>
                   <Button
                     fullWidth
                     variant="contained"
@@ -177,7 +177,7 @@ const Footer = () => {
           </Grid>
 
           {/* Quick Links */}
-          <Grid item xs={6} md={2}>
+          <Grid size={{ xs: 6, md: 2 }}>
             <Typography
               variant="h5"
               sx={{
@@ -193,7 +193,7 @@ const Footer = () => {
               {[
                 { to: '/', label: 'Home' },
                 { to: '/find-doctor', label: 'Find a Doctor' },
-                { to: '/services', label: 'Services' },
+                { to: '/service', label: 'Services' },
                 { to: '/contact', label: 'Contact Us' },
               ].map((link, index) => (
                 <Box component="li" sx={{ mb: 1 }} key={index}>
@@ -223,7 +223,7 @@ const Footer = () => {
           </Grid>
 
           {/* Services */}
-          <Grid item xs={6} md={2}>
+          <Grid size={{ xs: 6, md: 2 }}>
             <Typography
               variant="h5"
               sx={{
@@ -241,7 +241,7 @@ const Footer = () => {
                   <Box component="li" sx={{ mb: 1 }} key={index}>
                     <Button
                       component={Link}
-                      to="/services"
+                      to="/service"
                       variant="inherit"
                       aria-label={service}
                       sx={{
@@ -266,7 +266,7 @@ const Footer = () => {
           </Grid>
 
           {/* Contact Info */}
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Typography
               variant="h5"
               sx={{

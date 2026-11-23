@@ -12,32 +12,32 @@ const departments = [
   {
     name: 'Cardiology',
     specialty: 'cardiology',
-    desc: 'Comprehensive heart care, cardiovascular diagnosis and treatment.',
-    icon: <FavoriteIcon sx={{ fontSize: 30 }} />,
+    desc: 'Comprehensive cardiovascular screening, diagnostics, and heart treatments.',
+    icon: <FavoriteIcon sx={{ fontSize: 28 }} />,
   },
   {
     name: 'Neurology',
     specialty: 'neurology',
-    desc: 'Expert neurological evaluation, brain, and spinal care.',
-    icon: <PsychologyIcon sx={{ fontSize: 30 }} />,
-  },
-  {
-    name: 'Psychiatry & Wellness',
-    specialty: 'psychiatry',
-    desc: 'Compassionate mental healthcare and therapeutic support.',
-    icon: <HealingIcon sx={{ fontSize: 30 }} />,
-  },
-  {
-    name: 'Emergency & Trauma',
-    specialty: 'emergency',
-    desc: 'Rapid intervention 24/7 with state-of-the-art life support.',
-    icon: <MedicalServicesIcon sx={{ fontSize: 30 }} />,
+    desc: 'Expert neurological assessment, migraine therapy, brain, and spine wellness.',
+    icon: <PsychologyIcon sx={{ fontSize: 28 }} />,
   },
   {
     name: 'Pediatrics',
     specialty: 'pediatrics',
-    desc: 'Specialized healthcare and developmental care for children.',
-    icon: <ChildCareIcon sx={{ fontSize: 30 }} />,
+    desc: 'Compassionate pediatric healthcare, child vaccinations, and growth development.',
+    icon: <ChildCareIcon sx={{ fontSize: 28 }} />,
+  },
+  {
+    name: 'Dermatology',
+    specialty: 'dermatology',
+    desc: 'Advanced skincare, clinical dermatology, allergy checks, and aesthetic care.',
+    icon: <HealingIcon sx={{ fontSize: 28 }} />,
+  },
+  {
+    name: 'Emergency Care',
+    specialty: 'emergency',
+    desc: 'Rapid 24/7 emergency response, acute trauma intervention, and immediate care.',
+    icon: <MedicalServicesIcon sx={{ fontSize: 28 }} />,
   },
 ];
 
@@ -46,14 +46,14 @@ const DepartmentsSection = () => {
     <Box
       sx={{
         width: '100%',
-        py: { xs: 7, md: 10 },
+        py: { xs: 8, md: 11 },
         backgroundColor: '#F8FAFC',
       }}
       role="region"
       aria-label="Medical Departments Section"
     >
-      <Container maxWidth="xl">
-        <Box sx={{ textAlign: 'center', maxWidth: '700px', mx: 'auto', mb: 6 }}>
+      <Container maxWidth="xl" sx={{ px: { xs: 2.5, sm: 4, md: 6 } }}>
+        <Box sx={{ textAlign: 'center', maxWidth: '720px', mx: 'auto', mb: { xs: 5, md: 7 } }}>
           <Typography
             variant="overline"
             sx={{
@@ -62,14 +62,15 @@ const DepartmentsSection = () => {
               letterSpacing: 2,
               display: 'block',
               mb: 1,
+              fontSize: '0.85rem',
             }}
           >
-            OUR SPECIALTIES
+            OUR CLINICAL SPECIALTIES
           </Typography>
           <Typography
             variant="h2"
             sx={{
-              fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+              fontSize: { xs: '2rem', sm: '2.5rem', md: '2.9rem' },
               fontWeight: 800,
               color: '#1A3C5A',
               letterSpacing: '-0.5px',
@@ -78,28 +79,31 @@ const DepartmentsSection = () => {
           >
             Explore Specialized Departments
           </Typography>
-          <Typography variant="body1" sx={{ color: '#5A738E', lineHeight: 1.7 }}>
-            Our hospital brings together leading physicians and cutting-edge technology
-            across essential clinical specialties.
+          <Typography variant="body1" sx={{ color: '#5A738E', lineHeight: 1.7, fontSize: '1.05rem' }}>
+            Our medical center brings together distinguished physicians and advanced equipment across key health disciplines.
           </Typography>
         </Box>
 
-        <Grid container spacing={3} justifyContent="center">
+        {/* 5 Equal-Width Cards on Desktop (columns=10, size=2), 2 on Tablet, 1 on Mobile */}
+        <Grid container spacing={3} columns={{ xs: 12, sm: 6, md: 12, lg: 10 }}>
           {departments.map((dept, index) => (
-            <Grid item key={index} xs={12} sm={6} md={4} lg={2.4}>
+            <Grid key={index} size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
               <Box
                 component={Link}
                 to={`/find-doctor?specialty=${dept.specialty}`}
                 sx={{
                   display: 'flex',
                   flexDirection: 'column',
-                  p: 3,
-                  borderRadius: '16px',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  p: { xs: 3, md: 3.5 },
+                  borderRadius: '18px',
                   backgroundColor: '#ffffff',
-                  border: '1px solid #E5EAF0',
-                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
+                  border: '1px solid #E2E8F0',
+                  boxShadow: '0 4px 16px rgba(26, 60, 90, 0.05)',
                   textDecoration: 'none',
                   height: '100%',
+                  minHeight: { xs: 240, md: 280 },
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                   position: 'relative',
                   overflow: 'hidden',
@@ -121,16 +125,17 @@ const DepartmentsSection = () => {
                 <Box
                   className="dept-icon-box"
                   sx={{
-                    width: 58,
-                    height: 58,
-                    borderRadius: '14px',
-                    backgroundColor: 'rgba(0, 172, 193, 0.1)',
+                    width: 60,
+                    height: 60,
+                    borderRadius: '16px',
+                    backgroundColor: '#E0F7FA',
                     color: '#00ACC1',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     mb: 2.5,
                     transition: 'all 0.3s ease',
+                    flexShrink: 0,
                   }}
                 >
                   {dept.icon}
@@ -142,7 +147,8 @@ const DepartmentsSection = () => {
                     fontWeight: 700,
                     color: '#1A3C5A',
                     fontSize: '1.15rem',
-                    mb: 1,
+                    mb: 1.2,
+                    lineHeight: 1.3,
                   }}
                 >
                   {dept.name}
@@ -153,6 +159,7 @@ const DepartmentsSection = () => {
                   sx={{
                     color: '#5A738E',
                     lineHeight: 1.6,
+                    fontSize: '0.88rem',
                     mb: 3,
                     flexGrow: 1,
                   }}
@@ -164,13 +171,14 @@ const DepartmentsSection = () => {
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 0.5,
-                    color: '#005C97',
+                    gap: 0.6,
+                    color: '#00ACC1',
                     fontWeight: 700,
                     fontSize: '0.9rem',
+                    mt: 'auto',
                   }}
                 >
-                  Find Doctors
+                  View Doctors
                   <ArrowForwardIcon
                     className="dept-arrow"
                     sx={{ fontSize: 18, transition: 'transform 0.2s ease' }}

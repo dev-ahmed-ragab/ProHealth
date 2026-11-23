@@ -168,16 +168,16 @@ function DoctorOverview() {
       )}
 
       <Grid container spacing={2.5} sx={{ mb: 4 }}>
-        <Grid item xs={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard label="Upcoming" value={stats.upcoming} color="#00707E" />
         </Grid>
-        <Grid item xs={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard label="Today" value={stats.today} color="#B26A00" />
         </Grid>
-        <Grid item xs={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard label="Completed" value={stats.completed} color="#1F5F99" />
         </Grid>
-        <Grid item xs={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard label="Total appointments" value={stats.total} />
         </Grid>
       </Grid>

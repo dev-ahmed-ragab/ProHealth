@@ -59,9 +59,7 @@ const SpecializeSection = () => {
         <Grid container spacing={4}>
           {/* Left Side: Heading and Text */}
           <Grid
-            item
-            xs={12}
-            md={4}
+            size={{ xs: 12, md: 4 }}
             sx={{
               display: 'flex',
               flexDirection: 'column',
@@ -74,7 +72,7 @@ const SpecializeSection = () => {
               sx={{
                 fontSize: { xs: '1.8rem', sm: '2.2rem', md: '3rem' },
                 fontWeight: 700,
-                color: '#005C97',
+                color: '#1A3C5A',
                 mb: 2,
                 lineHeight: 1.3,
                 letterSpacing: '-0.5px',
@@ -99,8 +97,8 @@ const SpecializeSection = () => {
               variant="body2"
               sx={{
                 fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' },
-                color: '#005C97',
-                fontWeight: 600,
+                color: '#00ACC1',
+                fontWeight: 700,
                 letterSpacing: '0.5px',
                 lineHeight: 1.5,
               }}
@@ -110,14 +108,14 @@ const SpecializeSection = () => {
           </Grid>
 
           {/* Right Side: Service Cards */}
-          <Grid item xs={12} md={8}>
+          <Grid size={{ xs: 12, md: 8 }}>
             <Grid
               container
               spacing={{ xs: 2, sm: 3, md: 3 }}
               justifyContent="center"
             >
               {services.map((service, index) => (
-                <Grid item xs={12} sm={6} md={6} lg={4} key={index}>
+                <Grid size={{ xs: 12, sm: 6, md: 6, lg: 4 }} key={index}>
                   <Box
                     sx={{
                       display: 'flex',

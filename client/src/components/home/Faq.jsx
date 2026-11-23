@@ -67,7 +67,7 @@ const FaqSection = () => {
           fontWeight: 700,
           lineHeight: 1.3,
           letterSpacing: '-0.5px',
-          color: '#005C97',
+          color: '#1A3C5A',
           textAlign: 'center',
           mb: 4,
           pl: { xs: 0, md: 3 },

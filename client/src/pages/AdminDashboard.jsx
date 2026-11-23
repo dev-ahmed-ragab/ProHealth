@@ -183,7 +183,7 @@ function AdminOverview() {
       )}
 
       <Grid container spacing={2.5} sx={{ mb: 4 }}>
-        <Grid item xs={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
             label="Pending requests"
             value={stats.pending}
@@ -191,17 +191,17 @@ function AdminOverview() {
             color="#B26A00"
           />
         </Grid>
-        <Grid item xs={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard label="Today" value={stats.today} hint="Active visits" color="#00707E" />
         </Grid>
-        <Grid item xs={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
             label="Registered users"
             value={userTotal ?? '—'}
             hint={doctorTotal != null ? `${doctorTotal} doctors` : undefined}
           />
         </Grid>
-        <Grid item xs={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
             label="Cancelled"
             value={stats.cancelled}

@@ -200,7 +200,7 @@ function AppointmentsList() {
         }}
       >
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Select
               fullWidth
               size="small"
@@ -220,7 +220,7 @@ function AppointmentsList() {
               ))}
             </Select>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <TextField
               fullWidth
               size="small"
@@ -232,7 +232,7 @@ function AppointmentsList() {
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <TextField
               fullWidth
               size="small"
@@ -244,7 +244,7 @@ function AppointmentsList() {
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Stack direction="row" spacing={1}>
               <Button
                 onClick={loadAppointments}

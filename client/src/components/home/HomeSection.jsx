@@ -7,58 +7,64 @@ import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
 import StarIcon from '@mui/icons-material/Star';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
 const HomeSection = () => {
   return (
-    <Box sx={{ width: '100%', position: 'relative' }}>
-      {/* Hero Banner */}
+    <Box sx={{ width: '100%', position: 'relative', overflow: 'hidden' }}>
+      {/* Hero Banner with Clean Medical Aesthetic */}
       <Box
         sx={{
           position: 'relative',
           width: '100%',
-          minHeight: { xs: '650px', md: '720px' },
-          background: 'linear-gradient(135deg, rgba(0, 92, 151, 0.92) 0%, rgba(0, 172, 193, 0.82) 100%), url("/images/hero.jpg")',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          display: 'flex',
-          alignItems: 'center',
-          color: '#fff',
-          pt: { xs: '84px', md: '96px' },
-          pb: { xs: 8, md: 10 },
+          background: 'linear-gradient(180deg, #F0F7FB 0%, #FFFFFF 100%)',
+          pt: { xs: '96px', md: '110px' },
+          pb: { xs: 5, md: 7 },
           boxSizing: 'border-box',
-          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: '-80px',
+            right: '-80px',
+            width: '450px',
+            height: '450px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(0, 172, 193, 0.12) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          },
           '&::after': {
             content: '""',
             position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: '40px',
-            background: 'linear-gradient(to top, #f8fafc, transparent)',
-            zIndex: 1,
+            bottom: '0',
+            left: '-120px',
+            width: '400px',
+            height: '400px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(0, 92, 151, 0.08) 0%, transparent 70%)',
+            pointerEvents: 'none',
           },
         }}
         role="banner"
         aria-label="ProHealth Main Hero Banner"
       >
-        <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 2 }}>
-          <Grid container spacing={4} alignItems="center">
-            {/* Left Content */}
-            <Grid item xs={12} md={7}>
+        <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 2, px: { xs: 2.5, sm: 4, md: 6 } }}>
+          <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center">
+            {/* Left Column: Heading, Subtitle & CTAs */}
+            <Grid size={{ xs: 12, md: 6, lg: 6.5 }}>
               <Box sx={{ mb: 2 }}>
                 <Chip
-                  icon={<VerifiedUserIcon sx={{ color: '#fff !important', fontSize: '1rem' }} />}
+                  icon={<VerifiedUserIcon sx={{ color: '#00ACC1 !important', fontSize: '1.1rem' }} />}
                   label="Trusted Medical Excellence & Healthcare"
                   sx={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    backdropFilter: 'blur(8px)',
-                    color: '#fff',
-                    fontWeight: 600,
-                    fontSize: { xs: '0.75rem', sm: '0.85rem' },
-                    py: 0.5,
-                    px: 1,
-                    mb: 2,
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    backgroundColor: '#E0F7FA',
+                    color: '#00796B',
+                    fontWeight: 700,
+                    fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                    py: 1,
+                    px: 1.5,
+                    mb: 2.5,
+                    border: '1px solid #B2EBF2',
+                    borderRadius: '50px',
                   }}
                 />
               </Box>
@@ -66,48 +72,41 @@ const HomeSection = () => {
               <Typography
                 variant="h1"
                 sx={{
-                  fontSize: { xs: '2.2rem', sm: '3rem', md: '3.75rem' },
+                  fontSize: { xs: '2.2rem', sm: '3rem', md: '3.6rem' },
                   fontWeight: 800,
-                  lineHeight: 1.15,
-                  letterSpacing: '-1px',
-                  color: '#ffffff',
+                  lineHeight: 1.18,
+                  letterSpacing: '-0.8px',
+                  color: '#1A3C5A',
                   mb: 2.5,
-                  textShadow: '0 2px 10px rgba(0, 0, 0, 0.15)',
                 }}
               >
                 Your Partner in <br />
                 <Box
                   component="span"
                   sx={{
-                    background: 'linear-gradient(90deg, #A7FFEB, #FFFFFF)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
+                    color: '#00ACC1',
+                    display: 'inline-block',
                   }}
                 >
-                  Health & Wellness
+                  Health &amp; Wellness
                 </Box>
               </Typography>
 
               <Typography
                 variant="body1"
                 sx={{
-                  fontSize: { xs: '1rem', sm: '1.15rem', md: '1.25rem' },
+                  fontSize: { xs: '1rem', sm: '1.1rem', md: '1.15rem' },
                   lineHeight: 1.7,
-                  color: 'rgba(255, 255, 255, 0.95)',
+                  color: '#4A6B8A',
                   mb: 4,
-                  maxWidth: '620px',
+                  maxWidth: '560px',
                 }}
               >
-                Book top-certified doctors, manage your health appointments seamlessly, 
-                and receive world-class personalized medical care anytime.
+                We are committed to providing you with the best medical and healthcare to help you live healthier and happier. Book top certified doctors, manage appointments, and receive world-class care anytime.
               </Typography>
 
               {/* Action Buttons */}
-              <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                spacing={2}
-                sx={{ mb: 4 }}
-              >
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 4.5 }}>
                 <Button
                   component={Link}
                   to="/find-doctor"
@@ -115,211 +114,243 @@ const HomeSection = () => {
                   size="large"
                   startIcon={<SearchIcon />}
                   sx={{
-                    backgroundColor: '#ffffff',
-                    color: '#005C97',
+                    backgroundColor: '#00ACC1',
+                    color: '#ffffff',
                     fontWeight: 700,
-                    fontSize: '1.05rem',
-                    px: 4,
-                    py: 1.6,
-                    borderRadius: '12px',
+                    fontSize: '1rem',
+                    px: 3.5,
+                    py: 1.4,
+                    borderRadius: '10px',
                     textTransform: 'none',
-                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
-                    transition: 'all 0.3s ease',
+                    boxShadow: '0 8px 20px rgba(0, 172, 193, 0.35)',
+                    transition: 'all 0.25s ease',
                     '&:hover': {
-                      backgroundColor: '#E0F7FA',
+                      backgroundColor: '#0097A7',
                       transform: 'translateY(-2px)',
-                      boxShadow: '0 12px 28px rgba(0, 0, 0, 0.25)',
+                      boxShadow: '0 12px 24px rgba(0, 172, 193, 0.45)',
                     },
                   }}
                 >
                   Find a Doctor
                 </Button>
-
                 <Button
                   component={Link}
                   to="/service"
                   variant="outlined"
                   size="large"
-                  startIcon={<MedicalServicesIcon />}
+                  startIcon={<PlayArrowIcon />}
                   sx={{
-                    borderColor: 'rgba(255, 255, 255, 0.75)',
-                    borderWidth: '2px',
-                    color: '#ffffff',
-                    fontWeight: 600,
-                    fontSize: '1.05rem',
+                    borderColor: '#00ACC1',
+                    color: '#00796B',
+                    fontWeight: 700,
+                    fontSize: '1rem',
                     px: 3.5,
-                    py: 1.6,
-                    borderRadius: '12px',
+                    py: 1.4,
+                    borderRadius: '10px',
                     textTransform: 'none',
-                    backdropFilter: 'blur(6px)',
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    transition: 'all 0.3s ease',
+                    backgroundColor: '#ffffff',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.04)',
+                    transition: 'all 0.25s ease',
                     '&:hover': {
-                      borderColor: '#ffffff',
-                      backgroundColor: 'rgba(255, 255, 255, 0.22)',
+                      borderColor: '#0097A7',
+                      backgroundColor: '#F0FBFD',
                       transform: 'translateY(-2px)',
                     },
                   }}
                 >
-                  Explore Services
+                  See How We Work
                 </Button>
               </Stack>
 
-              {/* Quick trust highlights */}
-              <Stack
-                direction="row"
-                spacing={{ xs: 2, sm: 4 }}
-                alignItems="center"
-                sx={{ pt: 1 }}
+              {/* Trust Indicators Row */}
+              <Box
+                sx={{
+                  pt: 2.5,
+                  borderTop: '1px solid #E2E8F0',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  gap: { xs: 2, sm: 3 },
+                }}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <StarIcon sx={{ color: '#FFD700', fontSize: 20 }} />
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#fff' }}>
-                    4.9 / 5 (3,400+ Reviews)
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                  <Stack direction="row" spacing={0.25}>
+                    {[...Array(5)].map((_, i) => (
+                      <StarIcon key={i} sx={{ color: '#FFB300', fontSize: '1.25rem' }} />
+                    ))}
+                  </Stack>
+                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#1A3C5A', ml: 0.5 }}>
+                    4.9 / 5
                   </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <AccessTimeFilledIcon sx={{ color: '#A7FFEB', fontSize: 20 }} />
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#fff' }}>
+                <Typography variant="body2" sx={{ color: '#64748B', fontSize: '0.9rem' }}>
+                  (3,400+ Patient Feedback)
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#00796B' }}>
+                  <VerifiedUserIcon sx={{ fontSize: '1.1rem', color: '#00ACC1' }} />
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
                     Instant Confirmation
                   </Typography>
                 </Box>
-              </Stack>
+              </Box>
             </Grid>
 
-            {/* Right Side: Interactive Quick Stats Card */}
-            <Grid item xs={12} md={5}>
+            {/* Right Column: Doctor Cutout Image + Floating Stats Cards */}
+            <Grid size={{ xs: 12, md: 6, lg: 5.5 }}>
               <Box
                 sx={{
+                  position: 'relative',
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: 2.5,
-                  maxWidth: { xs: '100%', sm: '420px' },
-                  mx: { xs: 'auto', md: '0 0 0 auto' },
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  minHeight: { xs: 340, sm: 440, md: 520 },
                 }}
               >
-                {/* Stat Card 1 */}
+                {/* Soft circular decorative backdrop */}
                 <Box
                   sx={{
-                    background: 'rgba(255, 255, 255, 0.15)',
-                    backdropFilter: 'blur(16px)',
-                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                    position: 'absolute',
+                    width: { xs: 280, sm: 380, md: 440 },
+                    height: { xs: 280, sm: 380, md: 440 },
+                    borderRadius: '50%',
+                    background: 'radial-gradient(circle, #E0F7FA 0%, #E0F2FE 60%, transparent 100%)',
+                    zIndex: 1,
+                  }}
+                />
+
+                {/* Main Doctor Image */}
+                <Box
+                  component="img"
+                  src="/images/hero1.png"
+                  alt="ProHealth Certified Specialist Doctor"
+                  sx={{
+                    position: 'relative',
+                    zIndex: 2,
+                    maxHeight: { xs: 360, sm: 460, md: 520 },
+                    maxWidth: '100%',
+                    objectFit: 'contain',
+                    filter: 'drop-shadow(0 16px 32px rgba(26, 60, 90, 0.14))',
+                  }}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = '/images/image-1.png';
+                  }}
+                />
+
+                {/* Floating Card 1: 150K+ Patients (Top-Right) */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: { xs: '4%', sm: '8%', md: '10%' },
+                    right: { xs: '0px', sm: '10px', md: '-10px' },
+                    zIndex: 3,
+                    backgroundColor: '#ffffff',
                     borderRadius: '16px',
-                    p: 3,
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+                    p: { xs: 1.5, sm: 2 },
+                    boxShadow: '0 12px 30px rgba(26, 60, 90, 0.12)',
+                    border: '1px solid #EDF2F7',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 2.5,
+                    gap: 1.5,
                     transition: 'transform 0.3s ease',
-                    '&:hover': { transform: 'translateX(6px)' },
+                    '&:hover': { transform: 'translateY(-4px)' },
                   }}
                 >
                   <Box
                     sx={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: '14px',
-                      backgroundColor: '#ffffff',
-                      color: '#005C97',
+                      width: { xs: 38, sm: 46 },
+                      height: { xs: 38, sm: 46 },
+                      borderRadius: '12px',
+                      backgroundColor: '#E0F7FA',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                      flexShrink: 0,
+                      color: '#00ACC1',
                     }}
                   >
-                    <PeopleAltIcon sx={{ fontSize: 32 }} />
+                    <PeopleAltIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
                   </Box>
                   <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 800, color: '#fff', lineHeight: 1 }}>
-                      150,000+
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 800,
+                        color: '#1A3C5A',
+                        fontSize: { xs: '1rem', sm: '1.2rem' },
+                        lineHeight: 1.1,
+                      }}
+                    >
+                      150K+
                     </Typography>
-                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.85)', mt: 0.5 }}>
-                      Satisfied Patients Treated
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: '#64748B',
+                        fontWeight: 600,
+                        display: 'block',
+                        fontSize: { xs: '0.72rem', sm: '0.78rem' },
+                      }}
+                    >
+                      Satisfied Patients
                     </Typography>
                   </Box>
                 </Box>
 
-                {/* Stat Card 2 */}
+                {/* Floating Card 2: 870+ Doctors (Bottom-Left) */}
                 <Box
                   sx={{
-                    background: 'rgba(255, 255, 255, 0.15)',
-                    backdropFilter: 'blur(16px)',
-                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                    position: 'absolute',
+                    bottom: { xs: '4%', sm: '8%', md: '8%' },
+                    left: { xs: '0px', sm: '10px', md: '-15px' },
+                    zIndex: 3,
+                    backgroundColor: '#ffffff',
                     borderRadius: '16px',
-                    p: 3,
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+                    p: { xs: 1.5, sm: 2 },
+                    boxShadow: '0 12px 30px rgba(26, 60, 90, 0.12)',
+                    border: '1px solid #EDF2F7',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 2.5,
+                    gap: 1.5,
                     transition: 'transform 0.3s ease',
-                    '&:hover': { transform: 'translateX(6px)' },
+                    '&:hover': { transform: 'translateY(-4px)' },
                   }}
                 >
                   <Box
                     sx={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: '14px',
-                      backgroundColor: '#ffffff',
-                      color: '#00ACC1',
+                      width: { xs: 38, sm: 46 },
+                      height: { xs: 38, sm: 46 },
+                      borderRadius: '12px',
+                      backgroundColor: '#E0F2FE',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                      flexShrink: 0,
+                      color: '#0284C7',
                     }}
                   >
-                    <MedicalServicesIcon sx={{ fontSize: 32 }} />
+                    <MedicalServicesIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
                   </Box>
                   <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 800, color: '#fff', lineHeight: 1 }}>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 800,
+                        color: '#1A3C5A',
+                        fontSize: { xs: '1rem', sm: '1.2rem' },
+                        lineHeight: 1.1,
+                      }}
+                    >
                       870+
                     </Typography>
-                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.85)', mt: 0.5 }}>
-                      Licensed Specialists & Doctors
-                    </Typography>
-                  </Box>
-                </Box>
-
-                {/* Stat Card 3 */}
-                <Box
-                  sx={{
-                    background: 'rgba(255, 255, 255, 0.15)',
-                    backdropFilter: 'blur(16px)',
-                    border: '1px solid rgba(255, 255, 255, 0.25)',
-                    borderRadius: '16px',
-                    p: 3,
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 2.5,
-                    transition: 'transform 0.3s ease',
-                    '&:hover': { transform: 'translateX(6px)' },
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: '14px',
-                      backgroundColor: '#ffffff',
-                      color: '#00796B',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <AccessTimeFilledIcon sx={{ fontSize: 32 }} />
-                  </Box>
-                  <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 800, color: '#fff', lineHeight: 1 }}>
-                      24/7
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.85)', mt: 0.5 }}>
-                      Emergency & Online Assistance
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: '#64748B',
+                        fontWeight: 600,
+                        display: 'block',
+                        fontSize: { xs: '0.72rem', sm: '0.78rem' },
+                      }}
+                    >
+                      Certified Specialists
                     </Typography>
                   </Box>
                 </Box>
@@ -329,63 +360,62 @@ const HomeSection = () => {
         </Container>
       </Box>
 
-      {/* Feature Highlights Row */}
-      <Container maxWidth="xl" sx={{ mt: { xs: -4, md: -5 }, position: 'relative', zIndex: 10, mb: 6 }}>
-        <Grid container spacing={2.5}>
+      {/* Feature Highlights Row - Perfectly Uniform in Width & Height */}
+      <Container maxWidth="xl" sx={{ mt: { xs: 4, md: 5 }, mb: 8, px: { xs: 2.5, sm: 4, md: 6 } }}>
+        <Grid container spacing={3}>
           {[
             {
               title: 'Easy Online Booking',
-              desc: 'Select preferred doctor and slot in under 2 minutes.',
-              color: '#005C97',
-              icon: <AccessTimeFilledIcon sx={{ fontSize: 28, color: '#005C97' }} />,
+              desc: 'Select your preferred doctor, check schedule, and confirm appointment in under 2 minutes.',
+              icon: <AccessTimeFilledIcon sx={{ fontSize: 26, color: '#00ACC1' }} />,
             },
             {
               title: 'Verified Specialists',
-              desc: 'Over 800 certified doctors across all medical fields.',
-              color: '#00ACC1',
-              icon: <VerifiedUserIcon sx={{ fontSize: 28, color: '#00ACC1' }} />,
+              desc: 'Over 870 board-certified physicians across cardiology, neurology, pediatrics, and dermatology.',
+              icon: <VerifiedUserIcon sx={{ fontSize: 26, color: '#00ACC1' }} />,
             },
             {
-              title: 'Emergency Care',
-              desc: 'Rapid response care ready around the clock 24/7.',
-              color: '#D32F2F',
-              icon: <MedicalServicesIcon sx={{ fontSize: 28, color: '#D32F2F' }} />,
+              title: '24/7 Emergency Care',
+              desc: 'Rapid medical response and immediate consultation ready around the clock whenever needed.',
+              icon: <MedicalServicesIcon sx={{ fontSize: 26, color: '#00ACC1' }} />,
             },
             {
-              title: 'Holistic Care',
-              desc: 'Continuous follow-up and modern health monitoring.',
-              color: '#00796B',
-              icon: <StarIcon sx={{ fontSize: 28, color: '#00796B' }} />,
+              title: 'Holistic Wellness',
+              desc: 'Continuous personalized patient care focusing on long-term prevention and overall vitality.',
+              icon: <StarIcon sx={{ fontSize: 26, color: '#00ACC1' }} />,
             },
           ].map((item, idx) => (
-            <Grid item xs={12} sm={6} md={3} key={idx}>
+            <Grid key={idx} size={{ xs: 12, sm: 6, md: 3 }}>
               <Box
                 sx={{
                   backgroundColor: '#ffffff',
-                  p: 3,
+                  p: { xs: 3, sm: 3.5 },
                   borderRadius: '16px',
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.08)',
-                  border: '1px solid #edf2f7',
+                  boxShadow: '0 4px 16px rgba(26, 60, 90, 0.06)',
+                  border: '1px solid #EEF2F6',
                   height: '100%',
+                  minHeight: { xs: 'auto', md: '210px' },
                   display: 'flex',
                   flexDirection: 'column',
                   transition: 'all 0.3s ease',
                   '&:hover': {
                     transform: 'translateY(-4px)',
-                    boxShadow: '0 14px 30px rgba(0, 0, 0, 0.12)',
+                    boxShadow: '0 12px 28px rgba(0, 172, 193, 0.15)',
+                    borderColor: '#00ACC1',
                   },
                 }}
               >
                 <Box
                   sx={{
-                    width: 50,
-                    height: 50,
+                    width: 48,
+                    height: 48,
                     borderRadius: '12px',
-                    backgroundColor: `${item.color}15`,
+                    backgroundColor: '#E0F7FA',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     mb: 2,
+                    flexShrink: 0,
                   }}
                 >
                   {item.icon}
@@ -393,7 +423,7 @@ const HomeSection = () => {
                 <Typography variant="h6" sx={{ fontWeight: 700, color: '#1A3C5A', mb: 1, fontSize: '1.1rem' }}>
                   {item.title}
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#5A738E', lineHeight: 1.6 }}>
+                <Typography variant="body2" sx={{ color: '#64748B', lineHeight: 1.6, fontSize: '0.9rem', flexGrow: 1 }}>
                   {item.desc}
                 </Typography>
               </Box>

@@ -7,19 +7,13 @@ import {
   TextField,
   Button,
   Stack,
-  Divider,
-  useTheme,
-  useMediaQuery,
+  Container,
 } from '@mui/material';
 import { Phone, Email, LocationOn } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import api, { getErrorMessage } from '../api';
 
 const ContactUsPage = () => {
-  const theme = useTheme();
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
-
-  // Form state for validation
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -67,7 +61,7 @@ const ContactUsPage = () => {
       });
       setFeedback({
         type: 'success',
-        message: 'Thanks for reaching out. Our team will reply by email shortly.',
+        message: 'Thanks for reaching out! Our medical care team will reply by email shortly.',
       });
       setFormData({ name: '', email: '', subject: '', message: '' });
       setErrors({});
@@ -85,511 +79,355 @@ const ContactUsPage = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh' }}>
-      {/* Hero Banner */}
+    <Box sx={{ minHeight: '100vh', pb: 10, width: '100%', overflowX: 'hidden' }}>
+      {/* Original Beloved Parallax Hero Banner */}
       <Box
         sx={{
           position: 'relative',
           width: '100%',
-          minHeight: { xs: '380px', md: '460px' },
+          minHeight: { xs: '380px', md: '440px' },
           backgroundImage: 'url("/images/landing-parallax-1.jpg")',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           display: 'flex',
           alignItems: 'center',
-          color: '#fff',
-          paddingTop: { xs: '64px', md: '72px' },
+          color: '#ffffff',
+          pt: { xs: '96px', md: '110px' },
+          pb: { xs: 8, md: 10 },
           boxSizing: 'border-box',
           '&::before': {
             content: '""',
             position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(83, 201, 207, 0.48)', // الطبقة الشفافة
+            inset: 0,
+            backgroundColor: 'rgba(0, 150, 166, 0.68)', // The original vibrant ProHealth teal overlay
           },
         }}
+        role="banner"
       >
-        <Box
-          sx={{
-            position: 'relative',
-            zIndex: 1,
-            maxWidth: '1400px',
-            mx: 'auto',
-            px: { xs: 2, sm: 3, md: 4 },
-            py: 6,
-            textAlign: 'left',
-            pl: { xs: 0, md: 3 }, // Align text with card start
-          }}
-        >
-          <Typography
-            variant="h3"
-            sx={{
-              fontSize: { xs: '1.8rem', sm: '2.2rem', md: '3rem' },
-              fontWeight: 700,
-              color: '#fff',
-              mb: 2,
-              lineHeight: 1.3,
-              letterSpacing: '-0.5px',
-            }}
-          >
-            Contact Us
-          </Typography>
-          <Typography
-            variant="body1"
-            sx={{
-              fontSize: { xs: '0.95rem', sm: '1rem', md: '1.2rem' },
-              color: '#fff',
-              opacity: 0.95,
-              mb: 4,
-              lineHeight: 1.6,
-              maxWidth: '95%',
-            }}
-          >
-            We are here to assist you and answer any questions you may have.
-          </Typography>
-          <Button
-            component={Link}
-            to="/find-doctor"
-            variant="contained"
-            aria-label="Find a Doctor"
-            sx={{
-              backgroundColor: '#00ACC1',
-              color: '#fff',
-              fontSize: { xs: '0.9rem', md: '1rem' },
-              fontWeight: 600,
-              px: 3,
-              py: 1.5,
-              borderRadius: '8px',
-              textTransform: 'none',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-              '&:hover': {
-                backgroundColor: '#0097A7',
-                transform: 'translateY(-2px)',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-              },
-            }}
-          >
-            Find a Doctor
-          </Button>
-        </Box>
+        <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 2, px: { xs: 2.5, sm: 4, md: 6 } }}>
+          <Box sx={{ maxWidth: '700px' }}>
+            <Typography
+              variant="h1"
+              sx={{
+                fontSize: { xs: '2.2rem', sm: '2.8rem', md: '3.4rem' },
+                fontWeight: 800,
+                color: '#ffffff',
+                mb: 2,
+                lineHeight: 1.2,
+                letterSpacing: '-0.5px',
+              }}
+            >
+              Contact Us
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{
+                fontSize: { xs: '1rem', md: '1.2rem' },
+                color: 'rgba(255, 255, 255, 0.95)',
+                mb: 4,
+                lineHeight: 1.6,
+                maxWidth: '90%',
+              }}
+            >
+              We are here to assist you and answer any questions you may have about our clinical departments, doctor appointments, and personalized patient care.
+            </Typography>
+            <Button
+              component={Link}
+              to="/find-doctor"
+              variant="contained"
+              size="large"
+              sx={{
+                backgroundColor: '#ffffff',
+                color: '#00796B',
+                fontSize: '1rem',
+                fontWeight: 700,
+                px: 3.5,
+                py: 1.3,
+                borderRadius: '10px',
+                textTransform: 'none',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
+                transition: 'all 0.25s ease',
+                '&:hover': {
+                  backgroundColor: '#E0F7FA',
+                  transform: 'translateY(-2px)',
+                },
+              }}
+            >
+              Find a Doctor
+            </Button>
+          </Box>
+        </Container>
       </Box>
 
-      {/* Contact Form */}
-      <Box
-        sx={{
-          maxWidth: '800px',
-          mx: 'auto',
-          mt: { xs: -6, md: -8 },
-          mb: 6,
-          p: { xs: 3, md: 4 },
-          backgroundColor: '#fff',
-          borderRadius: '12px',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-          position: 'relative',
-          zIndex: 2,
-        }}
-      >
-        <Typography
-          variant="h5"
+      {/* Floating Contact Form - Exactly matching the original layout */}
+      <Container maxWidth="md" sx={{ position: 'relative', zIndex: 10, mt: { xs: -5, md: -7 }, mb: 8 }}>
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
           sx={{
-            fontWeight: 600,
-            mb: 3,
-            color: '#1A3C5A',
-            textAlign: 'center',
+            p: { xs: 3, sm: 4.5 },
+            backgroundColor: '#ffffff',
+            borderRadius: '18px',
+            boxShadow: '0 12px 36px rgba(26, 60, 90, 0.12)',
+            border: '1px solid #E2E8F0',
           }}
         >
-          Send Us a Message
-        </Typography>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              mb: 1,
+              color: '#1A3C5A',
+              fontSize: { xs: '1.5rem', sm: '1.8rem' },
+            }}
+          >
+            Send Us a Message
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#5A738E', mb: 3.5 }}>
+            Fill in the form below and our medical team will get in touch with you promptly.
+          </Typography>
 
-        <Divider sx={{ mb: 4 }} />
-
-        <Stack spacing={3} component="form" onSubmit={handleSubmit} noValidate>
           {feedback && (
             <Alert
               severity={feedback.type}
+              sx={{ mb: 3, borderRadius: '10px' }}
               onClose={() => setFeedback(null)}
-              role="status"
             >
               {feedback.message}
             </Alert>
           )}
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+
+          <Grid container spacing={2.5}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 variant="outlined"
-                label="Name"
+                label="Full Name"
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
                 fullWidth
-                aria-label="Name"
                 error={!!errors.name}
                 helperText={errors.name}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: '8px',
+                    borderRadius: '10px',
+                    '&:hover fieldset': { borderColor: '#00ACC1' },
+                    '&.Mui-focused fieldset': { borderColor: '#00ACC1' },
                   },
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 variant="outlined"
-                label="Email"
+                label="Email Address"
                 name="email"
                 type="email"
                 value={formData.email}
                 onChange={handleInputChange}
                 fullWidth
-                aria-label="Email"
                 error={!!errors.email}
                 helperText={errors.email}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: '8px',
+                    borderRadius: '10px',
+                    '&:hover fieldset': { borderColor: '#00ACC1' },
+                    '&.Mui-focused fieldset': { borderColor: '#00ACC1' },
                   },
                 }}
               />
             </Grid>
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                variant="outlined"
+                label="Subject"
+                name="subject"
+                value={formData.subject}
+                onChange={handleInputChange}
+                fullWidth
+                error={!!errors.subject}
+                helperText={errors.subject}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '10px',
+                    '&:hover fieldset': { borderColor: '#00ACC1' },
+                    '&.Mui-focused fieldset': { borderColor: '#00ACC1' },
+                  },
+                }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                variant="outlined"
+                label="Your Message"
+                name="message"
+                value={formData.message}
+                onChange={handleInputChange}
+                fullWidth
+                multiline
+                rows={4}
+                error={!!errors.message}
+                helperText={errors.message}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '10px',
+                    '&:hover fieldset': { borderColor: '#00ACC1' },
+                    '&.Mui-focused fieldset': { borderColor: '#00ACC1' },
+                  },
+                }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={submitting}
+                size="large"
+                fullWidth
+                sx={{
+                  backgroundColor: '#00ACC1',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  py: 1.4,
+                  fontSize: '1rem',
+                  borderRadius: '10px',
+                  boxShadow: '0 4px 14px rgba(0, 172, 193, 0.35)',
+                  '&:hover': {
+                    backgroundColor: '#0097A7',
+                    boxShadow: '0 6px 18px rgba(0, 172, 193, 0.45)',
+                  },
+                }}
+              >
+                {submitting ? 'Sending...' : 'Send Message'}
+              </Button>
+            </Grid>
+          </Grid>
+        </Box>
+      </Container>
+
+      {/* Contact Information & Map Section - Original Layout */}
+      <Container maxWidth="xl" sx={{ px: { xs: 2.5, sm: 4, md: 6 } }}>
+        <Grid container spacing={{ xs: 4, md: 6 }} alignItems="stretch">
+          {/* Left Column: Contact Details & Working Hours */}
+          <Grid size={{ xs: 12, md: 5 }}>
+            <Box
+              sx={{
+                p: { xs: 3, md: 4 },
+                backgroundColor: '#ffffff',
+                borderRadius: '18px',
+                border: '1px solid #E2E8F0',
+                boxShadow: '0 4px 18px rgba(26, 60, 90, 0.06)',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <Typography variant="h5" sx={{ fontWeight: 800, color: '#1A3C5A', mb: 3 }}>
+                Get In Touch
+              </Typography>
+
+              <Stack spacing={2.5} sx={{ mb: 4 }}>
+                {[
+                  {
+                    icon: <Phone sx={{ fontSize: 24, color: '#00ACC1' }} />,
+                    label: 'Emergency & Hotline',
+                    value: '+1 234 567 890',
+                  },
+                  {
+                    icon: <Email sx={{ fontSize: 24, color: '#00ACC1' }} />,
+                    label: 'Official Email',
+                    value: 'info@ProHealth.com',
+                  },
+                  {
+                    icon: <LocationOn sx={{ fontSize: 24, color: '#00ACC1' }} />,
+                    label: 'Hospital Address',
+                    value: '123 Medical Center Boulevard, Suite 400',
+                  },
+                ].map((item, idx) => (
+                  <Box
+                    key={idx}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      p: 2,
+                      borderRadius: '12px',
+                      backgroundColor: '#F8FAFC',
+                      border: '1px solid #EDF2F7',
+                      transition: 'all 0.25s ease',
+                      '&:hover': {
+                        backgroundColor: '#E0F7FA',
+                        borderColor: '#B2EBF2',
+                      },
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: '12px',
+                        backgroundColor: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        mr: 2,
+                        boxShadow: '0 2px 8px rgba(0, 172, 193, 0.15)',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {item.icon}
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" sx={{ color: '#5A738E', fontWeight: 600, display: 'block' }}>
+                        {item.label}
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 700, color: '#1A3C5A' }}>
+                        {item.value}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ))}
+              </Stack>
+
+              <Box sx={{ mt: 'auto', pt: 3, borderTop: '1px solid #EDF2F7' }}>
+                <Typography variant="h6" sx={{ fontWeight: 800, color: '#1A3C5A', mb: 1.5 }}>
+                  Working Hours
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#5A738E', mb: 0.8 }}>
+                  <strong style={{ color: '#1A3C5A' }}>Monday - Friday:</strong> 8:00 AM – 8:00 PM
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#5A738E' }}>
+                  <strong style={{ color: '#1A3C5A' }}>Saturday - Sunday:</strong> 9:00 AM – 5:00 PM (Emergency 24/7)
+                </Typography>
+              </Box>
+            </Box>
           </Grid>
 
-          <TextField
-            variant="outlined"
-            label="Subject"
-            name="subject"
-            value={formData.subject}
-            onChange={handleInputChange}
-            fullWidth
-            aria-label="Subject"
-            error={!!errors.subject}
-            helperText={errors.subject}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '8px',
-              },
-            }}
-          />
-
-          <TextField
-            variant="outlined"
-            label="Message"
-            name="message"
-            value={formData.message}
-            onChange={handleInputChange}
-            multiline
-            rows={6}
-            fullWidth
-            aria-label="Message"
-            error={!!errors.message}
-            helperText={errors.message}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '8px',
-              },
-              '& .MuiOutlinedInput-multiline': {
-                padding: '16.5px 14px',
-              },
-            }}
-          />
-
-          <Box sx={{ textAlign: 'left' }}>
-            <Button
-              type="submit"
-              variant="contained"
-              size="large"
-              disabled={submitting}
-              aria-label="Send Message"
-              sx={{
-                backgroundColor: '#00ACC1',
-                color: '#fff',
-                fontSize: { xs: '0.9rem', md: '1rem' },
-                fontWeight: 600,
-                px: 4,
-                py: 1.5,
-                borderRadius: '8px',
-                textTransform: 'none',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                '&:hover': {
-                  backgroundColor: '#0097A7',
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-                },
-                '&.Mui-disabled': {
-                  backgroundColor: 'rgba(0, 172, 193, 0.5)',
-                  color: '#fff',
-                },
-              }}
-            >
-              {submitting ? 'Sending…' : 'Send →'}
-            </Button>
-          </Box>
-        </Stack>
-      </Box>
-
-      {/* Map and Contact Info Section */}
-      <Box sx={{ py: 6 }}>
-        <Box
-          sx={{
-            maxWidth: '1400px',
-            mx: 'auto',
-            px: { xs: 2, sm: 3, md: 4 },
-            display: 'flex',
-            flexDirection: isSmallScreen ? 'column' : 'row',
-            gap: 4,
-          }}
-        >
-          {/* Contact Info */}
-          <Box
-            sx={{
-              width: isSmallScreen ? '100%' : '40%',
-              order: isSmallScreen ? 1 : 2,
-            }}
-          >
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 600,
-                color: '#1A3C5A',
-                mb: 3,
-              }}
-            >
-              Contact Information
-            </Typography>
-
-            <Stack spacing={3} sx={{ mb: 4 }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  p: 2.5,
-                  borderRadius: '12px',
-                  background: 'linear-gradient(145deg, #ffffff, #f0f4f8)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                  '&:hover': {
-                    transform: 'translateY(-6px)',
-                    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)',
-                  },
-                  minHeight: '120px',
-                  maxWidth: '360px',
-                  width: '100%',
-                  mx: 'auto',
-                }}
-                role="article"
-                aria-label="Phone Contact"
-              >
-                <Box
-                  sx={{
-                    width: '52px',
-                    height: '52px',
-                    backgroundColor: '#00ACC1',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mr: 2,
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                  }}
-                >
-                  <Phone sx={{ fontSize: 28, color: '#fff' }} />
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: '#4A6B8A', fontSize: '0.9rem' }}
-                  >
-                    Phone
-                  </Typography>
-                  <Typography
-                    sx={{
-                      fontWeight: 600,
-                      color: '#1A3C5A',
-                      fontSize: '1.1rem',
-                    }}
-                  >
-                    +966 12 345 6789
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  p: 2.5,
-                  borderRadius: '12px',
-                  background: 'linear-gradient(145deg, #ffffff, #f0f4f8)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                  '&:hover': {
-                    transform: 'translateY(-6px)',
-                    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)',
-                  },
-                  minHeight: '120px',
-                  maxWidth: '360px',
-                  width: '100%',
-                  mx: 'auto',
-                }}
-                role="article"
-                aria-label="Email Contact"
-              >
-                <Box
-                  sx={{
-                    width: '52px',
-                    height: '52px',
-                    backgroundColor: '#00ACC1',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mr: 2,
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                  }}
-                >
-                  <Email sx={{ fontSize: 28, color: '#fff' }} />
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: '#4A6B8A', fontSize: '0.9rem' }}
-                  >
-                    Email
-                  </Typography>
-                  <Typography
-                    sx={{
-                      fontWeight: 600,
-                      color: '#1A3C5A',
-                      fontSize: '1.1rem',
-                    }}
-                  >
-                    info@example.com
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  p: 2.5,
-                  borderRadius: '12px',
-                  background: 'linear-gradient(145deg, #ffffff, #f0f4f8)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                  '&:hover': {
-                    transform: 'translateY(-6px)',
-                    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)',
-                  },
-                  minHeight: '120px',
-                  maxWidth: '360px',
-                  width: '100%',
-                  mx: 'auto',
-                }}
-                role="article"
-                aria-label="Address Contact"
-              >
-                <Box
-                  sx={{
-                    width: '52px',
-                    height: '52px',
-                    backgroundColor: '#00ACC1',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mr: 2,
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                  }}
-                >
-                  <LocationOn sx={{ fontSize: 28, color: '#fff' }} />
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: '#4A6B8A', fontSize: '0.9rem' }}
-                  >
-                    Address
-                  </Typography>
-                  <Typography
-                    sx={{
-                      fontWeight: 600,
-                      color: '#1A3C5A',
-                      fontSize: '1.1rem',
-                    }}
-                  >
-                    King Abdulaziz Street, Riyadh, Saudi Arabia
-                  </Typography>
-                </Box>
-              </Box>
-            </Stack>
-
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 600,
-                color: '#1A3C5A',
-                mb: 3,
-                mt: 4,
-              }}
-            >
-              Working Hours
-            </Typography>
-            <Typography sx={{ mb: 1, color: '#4A6B8A', fontSize: '1rem' }}>
-              Sunday - Thursday: 8:00 AM - 6:00 PM
-            </Typography>
-            <Typography sx={{ color: '#4A6B8A', fontSize: '1rem' }}>
-              Friday - Saturday: 9:00 AM - 3:00 PM
-            </Typography>
-          </Box>
-
-          {/* Map */}
-          <Box
-            sx={{
-              width: isSmallScreen ? '100%' : '60%',
-              height: isSmallScreen ? '400px' : '500px',
-              position: 'relative',
-              order: isSmallScreen ? 2 : 1,
-            }}
-          >
+          {/* Right Column: Google Map */}
+          <Grid size={{ xs: 12, md: 7 }}>
             <Box
               sx={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                zIndex: 1,
-                borderRadius: '12px',
-              }}
-            />
-            <Box
-              sx={{
-                height: '100%',
-                borderRadius: '12px',
+                height: { xs: 350, md: '100%' },
+                minHeight: { md: 450 },
+                borderRadius: '18px',
                 overflow: 'hidden',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-                position: 'relative',
+                boxShadow: '0 4px 18px rgba(26, 60, 90, 0.08)',
+                border: '1px solid #E2E8F0',
               }}
             >
               <iframe
-                title="ProHealth Clinic Location"
+                title="ProHealth Clinic Location Map"
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3621.853784851493!2d46.67527731500262!3d24.77451858408547!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e2ee3b9b9b9b9b9%3A0x9b9b9b9b9b9b9b9b!2sRiyadh%2C%20Saudi%20Arabia!5e0!3m2!1sen!2sus!4v1620000000000!5m2!1sen!2sus"
                 width="100%"
                 height="100%"
-                style={{ border: 0 }}
+                style={{ border: 0, minHeight: '350px' }}
                 allowFullScreen=""
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
               />
             </Box>
-          </Box>
-        </Box>
-      </Box>
+          </Grid>
+        </Grid>
+      </Container>
     </Box>
   );
 };

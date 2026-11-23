@@ -125,13 +125,24 @@ npm start
 
 ## 🔐 Default Demo Accounts
 
-For demonstration and testing purposes, use the seeded accounts:
+For demonstration, review, and testing purposes, use the seeded accounts below:
 
-| Role | Email | Password | Permissions |
+| Role | Email | Password | Permissions & Dashboard |
 | :--- | :--- | :--- | :--- |
-| **Administrator** | `admin@prohealth.dev` | `Admin1234` | Full access to `/admin-dashboard`, user role assignment, statistics |
-| **Doctor (Cardiology)** | `sarah.doctor@prohealth.dev` | `Doctor1234` | Access to `/doctor-dashboard`, schedule management, status updates |
-| **Doctor (Pediatrics)** | `omar.doctor@prohealth.dev` | `Doctor1234` | Access to `/doctor-dashboard`, appointment slots |
+| **👑 System Administrator** | `admin@prohealth.dev` | `Admin1234` | Full access to `/admin-dashboard`, user role management, system stats |
+| **🩺 Dr. Sarah Hassan (Cardiology)** | `sarah.doctor@prohealth.dev` | `Doctor1234` | Access to `/doctor-dashboard`, patient appointments & schedule |
+| **🩺 Dr. Omar Khaled (Pediatrics)** | `omar.doctor@prohealth.dev` | `Doctor1234` | Access to `/doctor-dashboard`, slots & clinical status updates |
+| **🩺 Dr. Laila Mostafa (Dermatology)** | `laila.doctor@prohealth.dev` | `Doctor1234` | Access to `/doctor-dashboard`, dermatology patient consultations |
+| **🩺 Dr. Khaled Mansour (Neurology)** | `khaled.doctor@prohealth.dev` | `Doctor1234` | Access to `/doctor-dashboard`, neurology appointments |
+| **👤 Mohamed Ali (Patient)** | `patient.test@example.com` | `Patient1234` | Access to `/user-dashboard`, appointment history, booking status |
+
+### How to Seed or Reset Demo Accounts
+To populate or refresh these accounts in the database at any time:
+```bash
+cd server
+npm run seed
+```
+This script cleanly verifies database connectivity and resets all demo accounts and upcoming sample appointments.
 
 ---
 

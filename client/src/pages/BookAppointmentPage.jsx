@@ -17,9 +17,18 @@ import {
 } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
-import api, { getErrorMessage } from '../api';
+import api, { API_BASE_URL, getErrorMessage } from '../api';
 
 const FALLBACK_IMAGE = '/images/team-member-4.jpg';
+
+const resolveDoctorImage = (pic) => {
+  if (!pic) return FALLBACK_IMAGE;
+  if (pic.startsWith('http://') || pic.startsWith('https://')) return pic;
+  if (pic.startsWith('/images/')) return pic;
+  if (pic.startsWith('/uploads/')) return `${API_BASE_URL}${pic}`;
+  if (pic.startsWith('uploads/')) return `${API_BASE_URL}/${pic}`;
+  return pic;
+};
 
 const todayISO = () => {
   const now = new Date();
@@ -251,7 +260,7 @@ const BookAppointmentPage = () => {
       </Typography>
 
       <Grid container spacing={4}>
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card
             elevation={0}
             sx={{ borderRadius: '14px', boxShadow: '0 6px 18px rgba(0, 0, 0, 0.08)' }}
@@ -259,7 +268,7 @@ const BookAppointmentPage = () => {
             <CardMedia
               component="img"
               height="240"
-              image={doctor.profilePicture || FALLBACK_IMAGE}
+              image={resolveDoctorImage(doctor.profilePicture)}
               alt={`Dr. ${doctor.name}`}
               onError={(event) => {
                 event.currentTarget.onerror = null;
@@ -288,7 +297,7 @@ const BookAppointmentPage = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Paper
             elevation={0}
             sx={{ p: { xs: 2.5, md: 4 }, borderRadius: '14px', boxShadow: '0 6px 18px rgba(0, 0, 0, 0.08)' }}

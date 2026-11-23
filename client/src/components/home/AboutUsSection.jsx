@@ -23,7 +23,7 @@ const AboutUsSection = () => {
           alignItems="center"
         >
           {/* Left Side: Professional Image Composition */}
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Box sx={{ position: 'relative', maxWidth: '560px', mx: 'auto' }}>
               <Box
                 component="img"
@@ -72,18 +72,18 @@ const AboutUsSection = () => {
                   position: 'absolute',
                   bottom: { xs: -16, sm: -24 },
                   left: { xs: 8, sm: -20 },
-                  backgroundColor: '#005C97',
-                  color: '#ffffff',
+                  backgroundColor: '#ffffff',
+                  border: '2px solid #00ACC1',
                   borderRadius: '16px',
                   px: 2.5,
                   py: 1.5,
-                  boxShadow: '0 12px 28px rgba(0, 92, 151, 0.25)',
+                  boxShadow: '0 12px 28px rgba(0, 172, 193, 0.2)',
                 }}
               >
-                <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1 }}>
+                <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1, color: '#00ACC1' }}>
                   15+ Years
                 </Typography>
-                <Typography variant="caption" sx={{ color: '#A7FFEB', fontWeight: 600 }}>
+                <Typography variant="caption" sx={{ color: '#5A738E', fontWeight: 600 }}>
                   Of Medical Excellence
                 </Typography>
               </Box>
@@ -91,7 +91,7 @@ const AboutUsSection = () => {
           </Grid>
 
           {/* Right Side: Text & Key Highlights */}
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Box sx={{ maxWidth: '580px' }}>
               <Typography
                 variant="overline"
@@ -159,18 +159,20 @@ const AboutUsSection = () => {
                 size="large"
                 endIcon={<ArrowForwardIcon />}
                 sx={{
-                  backgroundColor: '#005C97',
-                  color: '#fff',
+                  backgroundColor: '#00ACC1',
+                  color: '#ffffff',
                   fontWeight: 700,
                   fontSize: '1rem',
                   px: 3.5,
                   py: 1.4,
                   borderRadius: '12px',
                   textTransform: 'none',
-                  boxShadow: '0 6px 18px rgba(0, 92, 151, 0.25)',
+                  boxShadow: '0 6px 18px rgba(0, 172, 193, 0.3)',
+                  transition: 'all 0.25s ease',
                   '&:hover': {
-                    backgroundColor: '#004775',
+                    backgroundColor: '#0097A7',
                     transform: 'translateY(-2px)',
+                    boxShadow: '0 10px 24px rgba(0, 172, 193, 0.45)',
                   },
                 }}
               >

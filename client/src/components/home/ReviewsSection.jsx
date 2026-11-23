@@ -74,7 +74,7 @@ const ReviewsSection = () => {
           fontWeight: 700,
           lineHeight: 1.3,
           letterSpacing: '-0.5px',
-          color: '#005C97',
+          color: '#1A3C5A',
           textAlign: 'center',
           mb: 4,
           pl: { xs: 0, md: 3 },
@@ -87,7 +87,7 @@ const ReviewsSection = () => {
         spacing={{ xs: 2, sm: 3, md: 3 }}
         direction={{ xs: 'column', md: 'row' }}
       >
-        <Grid item xs={12} md={6} sx={{ order: { xs: 1, md: 0 } }}>
+        <Grid size={{ xs: 12, md: 6 }} sx={{ order: { xs: 1, md: 0 } }}>
           <Stack spacing={2}>
             {reviews.map((client, index) => (
               <Box
@@ -157,9 +157,7 @@ const ReviewsSection = () => {
           </Stack>
         </Grid>
         <Grid
-          item
-          xs={12}
-          md={6}
+          size={{ xs: 12, md: 6 }}
           sx={{
             order: { xs: 2, md: 0 },
             display: 'flex',

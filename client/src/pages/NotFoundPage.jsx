@@ -58,7 +58,7 @@ const NotFoundPage = () => {
             sx={{
               fontSize: { xs: '1.8rem', sm: '2.2rem', md: '3rem' },
               fontWeight: 700,
-              color: '#005C97',
+              color: '#1A3C5A',
               lineHeight: 1.3,
               letterSpacing: '-0.5px',
             }}

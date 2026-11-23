@@ -24,7 +24,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import NotFoundPage from './pages/NotFoundPage';
 import Navbar from './components/layer/Navbar';
 import Footer from './components/layer/Footer';
-import { Box } from '@mui/material';
+import { ThemeProvider, CssBaseline, Box } from '@mui/material';
+import theme from './theme';
 import Services from './pages/Services';
 import Contact from './pages/Contact';
 
@@ -40,15 +41,17 @@ const ScrollToTop = () => {
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <ScrollToTop />
-        <Box
-          sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
-        >
-          <Navbar />
-          <Box component="main" sx={{ flexGrow: 1, width: '100%', overflowX: 'hidden' }}>
-            <Routes>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Router>
+        <AuthProvider>
+          <ScrollToTop />
+          <Box
+            sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#F8FAFC' }}
+          >
+            <Navbar />
+            <Box component="main" sx={{ flexGrow: 1, width: '100%', overflowX: 'hidden' }}>
+              <Routes>
               {/* Public routes */}
               <Route path="/" element={<HomePage />} />
               <Route path="/find-doctor" element={<DoctorsPage />} />
@@ -105,6 +108,7 @@ function App() {
         </Box>
       </AuthProvider>
     </Router>
+  </ThemeProvider>
   );
 }
 

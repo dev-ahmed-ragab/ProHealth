@@ -222,22 +222,22 @@ const StatisticsDashboard = () => {
       ) : (
         <>
           <Grid container spacing={2.5} sx={{ mb: 4 }}>
-            <Grid item xs={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <StatCard label="Loaded" value={stats.total} />
             </Grid>
-            <Grid item xs={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <StatCard label="Pending" value={stats.pending} color="#B26A00" />
             </Grid>
-            <Grid item xs={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <StatCard label="Completed" value={stats.completed} color="#1F5F99" />
             </Grid>
-            <Grid item xs={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <StatCard label="Cancelled" value={stats.cancelled} color="#B23B3B" />
             </Grid>
           </Grid>
 
           <Grid container spacing={2.5} sx={{ mb: 4 }}>
-            <Grid item xs={12} md={7}>
+            <Grid size={{ xs: 12, md: 7 }}>
               <Paper
                 elevation={0}
                 sx={{
@@ -265,7 +265,7 @@ const StatisticsDashboard = () => {
                 )}
               </Paper>
             </Grid>
-            <Grid item xs={12} md={5}>
+            <Grid size={{ xs: 12, md: 5 }}>
               <Paper
                 elevation={0}
                 sx={{
